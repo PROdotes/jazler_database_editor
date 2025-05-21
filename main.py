@@ -1,36 +1,27 @@
 import shutil
 from tkinter import *
 from tkinter import messagebox
-from pyodbc import connect
 from my_methods import *
+from database import Database
 
 # Constants and Configuration
+# WARNING! LIVE FILE!!!
 file = '\\\\ONAIR\\Jazler RadioStar 2\\Databases\\JZRS2DB-V5.accdb'
 table_name = 'snDatabase'
-#file = live_file
 
-conn = connect('Driver={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + file)
-cursor = conn.cursor()
 
-table_names(cursor)
+print("Available tables:", db.table_names())
+print("Columns:", db.column_names())
 
-column_names(cursor, table_name)
-
-genre_map = generate_genre_map(cursor)
+genre_map = db.generate_genre_map()
 reverse_genre_map = {v: k for k, v in genre_map.items()}
 
-decade_map = generate_decade_map(cursor)
+decade_map = db.generate_decade_map()
 reverse_decade_map = {v: k for k, v in decade_map.items()}
 
-tempo_map = generate_tempo_map(cursor)
+tempo_map = db.generate_tempo_map()
 
-#cursor.execute("SELECT * from " + table_name)
-#cursor.execute("SELECT * from " + table_name + " WHERE fldCat2 = 0")
-#cursor.execute("SELECT * from " + table_name + " WHERE fldYear = 2024")
-#cursor.execute("SELECT * from " + table_name + " WHERE fldTitle LIKE '%Prije sna%'")
-#cursor.execute("SELECT * from " + table_name + " WHERE fldFilename LIKE '%z:%'")
-cursor.execute("SELECT * from " + table_name + " WHERE fldArtistName LIKE '%Fall Out Boy%'")
-song_query = cursor.fetchall()
+song_query = db.fetch_songs_by_artist("Fall Out Boy")
 position = 0
 song, id3, tag = get_data(song_query, position, genre_map, decade_map, tempo_map)
 
@@ -64,8 +55,7 @@ def update_fields():
 def song_rename():
     global song
     location_db = song.location_correct.replace("z:", "b:")
-    cursor.execute("UPDATE " + table_name + " SET fldFilename = ? WHERE AUID = ?", location_db, song.id)
-    conn.commit()
+    db.update_song_filename(song.id, location_db)
     if not os.path.exists(song.location_correct):
         os.makedirs(os.path.dirname(song.location_correct), exist_ok=True)
     shutil.move(song.location_local, song.location_correct)
@@ -127,12 +117,20 @@ def save_song(rename):
     if not field_check:
         messagebox.showwarning("Warning", "Not all fields are filled in correctly!")
     if field_check and genre_id_check and year_check:
-        cursor.execute(
-            "UPDATE " + table_name + " SET fldTitle = ?, fldAlbum = ?, fldYear = ?, fldComposer = ?, fldLabel = ?," +
-            " fldCat1a = ?, fldCDKey = ?, fldCat2 = ?, fldDuration = ? WHERE AUID = ?",
-            song.title, song.album, song.year, song.composer, song.publisher, genre_id, song.isrc, song.genre_04_id,
-            song.duration, song.id)
-        conn.commit()
+        # Gather fields to update
+        update_fields_dict = {
+            "fldTitle": song.title,
+            "fldAlbum": song.album,
+            "fldYear": song.year,
+            "fldComposer": song.composer,
+            "fldLabel": song.publisher,
+            "fldCat1a": genre_id,
+            "fldCDKey": song.isrc,
+            "fldCat2": song.genre_04_id,
+            "fldDuration": song.duration,
+        # Add other fields as needed
+        }
+        db.update_song_fields(song.id, update_fields_dict)
         tag["TPE1"] = id3.artist
         tag["TIT2"] = id3.title
         tag["TALB"] = id3.album
@@ -143,8 +141,7 @@ def save_song(rename):
         tag["TSRC"] = id3.isrc
         tag["TLEN"] = id3.duration
         tag.write()
-        cursor.execute("SELECT * from " + table_name + " WHERE AUID = ?", song.id)
-        result = cursor.fetchall()[0]
+        result = db.fetch_song_by_id(song.id)
         song_query[position] = result
         print(result)
         messagebox.showinfo("Info", "Song saved!")
