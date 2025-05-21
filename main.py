@@ -6,7 +6,8 @@ from database import Database
 
 # Constants and Configuration
 # WARNING! LIVE FILE!!!
-file = '\\\\ONAIR\\Jazler RadioStar 2\\Databases\\JZRS2DB-V5.accdb'
+# changed database to backup
+file = '\\\\ONAIR\\Jazler RadioStar 2\\Databases - Copy\\JZRS2DB-V5.accdb'
 table_name = 'snDatabase'
 
 
