@@ -1,4 +1,5 @@
 import shutil
+from os import makedirs
 from tkinter import *
 from tkinter import messagebox
 from tkinter.ttk import Combobox
@@ -66,19 +67,19 @@ def update_fields():
             id3 = SongID3("", "", "", "", "0", "", "", "", "0", "FILE NOT FOUND")
 
     texts_db["artist"].config(state="normal")
-    insert_string(song.artist, id3.artist, texts_db["artist"], texts_id3["artist"])
+    insert_string(song.artist, id3.artist, texts_db["artist"], texts_id3["artist"], END)
     texts_db["artist"].config(state="disabled")
-    insert_string(song.title, id3.title, texts_db["title"], texts_id3["title"])
-    insert_string(song.album, id3.album, texts_db["album"], texts_id3["album"])
-    insert_string(song.composer, id3.composer, texts_db["composer"], texts_id3["composer"])
-    insert_string(song.publisher, id3.publisher, texts_db["publisher"], texts_id3["publisher"])
-    insert_string(song.year, id3.year, texts_db["year"], texts_id3["year"])
+    insert_string(song.title, id3.title, texts_db["title"], texts_id3["title"], END)
+    insert_string(song.album, id3.album, texts_db["album"], texts_id3["album"], END)
+    insert_string(song.composer, id3.composer, texts_db["composer"], texts_id3["composer"], END)
+    insert_string(song.publisher, id3.publisher, texts_db["publisher"], texts_id3["publisher"], END)
+    insert_string(song.year, id3.year, texts_db["year"], texts_id3["year"], END)
     texts_db["decade"].config(state="normal")
     texts_id3["decade"].config(state="normal")
-    insert_string(song.decade, song.decade, texts_db["decade"], texts_id3["decade"])
+    insert_string(song.decade, song.decade, texts_db["decade"], texts_id3["decade"], END)
     texts_db["decade"].config(state="disabled")
     texts_id3["decade"].config(state="disabled")
-    insert_string(song.genres_all, id3.genres_all, texts_db["genre"], texts_id3["genre"])
+    insert_string(song.genres_all, id3.genres_all, texts_db["genre"], texts_id3["genre"], END)
     test_genre = check_genre(song.genres_all, id3.genres_all)
     if test_genre:
         texts_db["genre"].config(bg="white")
@@ -88,10 +89,10 @@ def update_fields():
         texts_id3["genre"].config(bg="light salmon")
     texts_db["duration"].config(state="normal")
     texts_id3["duration"].config(state="normal")
-    insert_string(song.duration, song.duration, texts_db["duration"], texts_id3["duration"])
+    insert_string(song.duration, song.duration, texts_db["duration"], texts_id3["duration"], END)
     texts_db["duration"].config(state="disabled")
     texts_id3["duration"].config(state="disabled")
-    insert_string(song.isrc, id3.isrc, texts_db["isrc"], texts_id3["isrc"])
+    insert_string(song.isrc, id3.isrc, texts_db["isrc"], texts_id3["isrc"], END)
     #if both isrc are empty or none set bg to white
     if (song.isrc == "" or song.isrc is None) and (id3.isrc == "" or id3.isrc is None):
         texts_db["isrc"].config(bg="white")
@@ -115,8 +116,8 @@ def song_rename():
     global song
     location_db = song.location_correct.replace("z:", "b:")
     db.update_song_filename(song.id, location_db)
-    if not os.path.exists(song.location_correct):
-        os.makedirs(os.path.dirname(song.location_correct), exist_ok=True)
+    if not path.exists(song.location_correct):
+        makedirs(path.dirname(song.location_correct), exist_ok=True)
     shutil.move(song.location_local, song.location_correct)
     song.location_local = song.location_correct
     song_query[position][20] = song.location_correct
@@ -314,10 +315,10 @@ for field in fields:
     labels_db[field].grid(row=row_count, column=1)
     texts_db[field].grid(row=row_count, column=2, columnspan=2)
     buttons_db[field].grid(row=row_count, column=4)
-    buttons_db[field].bind("<Button-1>", lambda event, f=field: copy_text(texts_db[f], texts_id3[f]))
+    buttons_db[field].bind("<Button-1>", lambda event, f=field: copy_text(texts_db[f], texts_id3[f], END))
     if field != "artist":
         buttons_id3[field].grid(row=row_count, column=5)
-        buttons_id3[field].bind("<Button-1>", lambda event, f=field: copy_text(texts_id3[f], texts_db[f]))
+        buttons_id3[field].bind("<Button-1>", lambda event, f=field: copy_text(texts_id3[f], texts_db[f], END))
     texts_id3[field].grid(row=row_count, column=6, columnspan=2)
     labels_id3[field].grid(row=row_count, column=8)
 

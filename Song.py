@@ -1,16 +1,4 @@
-import os
-from mutagen.mp3 import MP3
-
-
-def song_length(path):
-    try:
-        audio = MP3(path)
-        length = audio.info.length
-        print("Length of song: ", length)
-        return length
-    except Exception as e:
-        print(f"Error while getting song length: {e}")
-        return None
+from os import path
 
 
 def get_location(artist, title, genre, year):
@@ -27,7 +15,7 @@ def get_location(artist, title, genre, year):
         folder = f'z:\\songs\\cro\\domoljubne\\'
     if genre == "religijske":
         folder = f'z:\\songs\\religiozne\\'
-    return os.path.join(folder, filename)
+    return path.join(folder, filename)
 
 
 def list_to_string(genre0, strings):
@@ -64,7 +52,7 @@ class Song:
         self.isrc = input_data[27]
         self.publisher = input_data[32]
         self.artist = input_data[36]
-        self.exists = os.path.isfile(self.location.lower().replace("b:", "z:"))
+        self.exists = path.isfile(self.location.lower().replace("b:", "z:"))
         self.location_correct = get_location(self.artist, self.title, self.genre_01_name, self.year)
 
     def basic_data(self):

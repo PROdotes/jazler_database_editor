@@ -1,7 +1,6 @@
 from os import system
-from tkinter import END
-import mutagen.id3
 from Song import *
+from mp3_stuff import *
 
 
 def table_names(cursor):
@@ -68,7 +67,7 @@ def get_data(database_entry, genre_map, decade_map, tempo_map):
     if song.exists:
         tag = None
         try:
-            tag = MP3(song.location_local, ID3=mutagen.id3.ID3)
+            tag = get_tag(song.location_local)
             id3_error = ""
         except Exception as e:
             print(f"---Error while reading tag: {e}")
@@ -83,26 +82,6 @@ def get_data(database_entry, genre_map, decade_map, tempo_map):
         return song, None
 
 
-def tag_write(id3_data, location):
-    try:
-        tag = MP3(location, ID3=mutagen.id3.ID3)
-    except Exception as e:
-        print(e)
-        tag = None
-
-    tag.tags["TPE1"] = mutagen.id3.TPE1(encoding=3, text=[id3_data.artist])
-    tag.tags["TIT2"] = mutagen.id3.TIT2(encoding=3, text=[id3_data.title])
-    tag.tags["TALB"] = mutagen.id3.TALB(encoding=3, text=[id3_data.album])
-    tag.tags["TCOM"] = mutagen.id3.TCOM(encoding=3, text=[id3_data.composer])
-    tag.tags["TPUB"] = mutagen.id3.TPUB(encoding=3, text=[id3_data.publisher])
-    tag.tags["TDRC"] = mutagen.id3.TDRC(encoding=3, text=[str(id3_data.year)])
-    tag.tags["TCON"] = mutagen.id3.TCON(encoding=3, text=[id3_data.genres_all])
-    tag.tags["TLEN"] = mutagen.id3.TLEN(encoding=3, text=[str(int(float(str(id3_data.duration))))])
-    if id3_data.isrc != "":
-        tag.tags["TSRC"] = mutagen.id3.TSRC(encoding=3, text=[id3_data.isrc])
-    tag.save(v2_version=3)
-
-
 def get_genre_id(genre, reverse_genre_map):
     genre = genre.lower()
     if genre in reverse_genre_map:
@@ -111,22 +90,22 @@ def get_genre_id(genre, reverse_genre_map):
         return -1
 
 
-def copy_text(text_1, text_2):
-    text_2.delete(1.0, END)
-    text_2.insert(END, text_1.get("1.0", END))
+def copy_text(text_1, text_2, end):
+    text_2.delete(1.0, end)
+    text_2.insert(end, text_1.get("1.0", end))
     text_1.config(bg="white")
     text_2.config(bg="white")
 
 
-def insert_string(string1, string2, label_db, label_id3):
+def insert_string(string1, string2, label_db, label_id3, end):
     if string1 == "-" or string1 is None:
         string1 = ""
     if string2 == "-" or string2 is None:
         string2 = ""
-    label_db.delete(1.0, END)
+    label_db.delete(1.0, end)
     label_db.insert(1.0, string1)
     label_db.config(bg="white")
-    label_id3.delete(1.0, END)
+    label_id3.delete(1.0, end)
     label_id3.insert(1.0, string2)
     label_id3.config(bg="white")
     if str(string1) == "" or str(string1) != str(string2):

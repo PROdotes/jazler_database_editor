@@ -1,5 +1,6 @@
 from pyodbc import connect
 
+
 class Database:
     def __init__(self, db_path, table_name):
         self.db_path = db_path
