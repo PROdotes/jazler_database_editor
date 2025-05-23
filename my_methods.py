@@ -1,9 +1,6 @@
 from os import system
 from tkinter import END
-
-import stagger
-from stagger.id3 import *
-
+import mutagen.id3
 from Song import *
 
 
@@ -64,28 +61,20 @@ def get_data(database_entry, genre_map, decade_map, tempo_map):
     song = Song(database_entry, genre_map, decade_map, tempo_map)
 
     song.id3_data()
-    #print(song.duration)
     if song.duration == 0:
         song.duration = song_length(song.location_local)
     print(song.location_local)
 
     if song.exists:
+        tag = None
         try:
-            tag = stagger.read_tag(song.location_local)
+            tag = MP3(song.location_local, ID3=mutagen.id3.ID3)
             id3_error = ""
         except Exception as e:
             print(f"---Error while reading tag: {e}")
             id3_error = "ID3 error"
-            tag = stagger.default_tag()
-        i3d_tags = ["TPE1", "TIT2", "TCOM", "TALB", "TCON", "TPUB", "TSRC", "TLEN", "TYER"]
-        for id3_name in i3d_tags:
-            if not tag.__contains__(id3_name):
-                tag.__setitem__(id3_name, "")
-        if tag[TYER].text[0] == "":
-            tag[TYER] = str(0)
-        id3 = SongID3(tag.artist, tag.title, tag.composer, tag.album,
-                      int(tag[TYER].text[0]), tag.genre.lower(), tag[TPUB].text[0], tag[TSRC].text[0], tag[TLEN].text[0],
-                      id3_error)
+        id3 = SongID3(tag.get("TPE1"), tag.get("TIT2"), tag.get("TCOM"), tag.get("TALB"), tag.get("TDRC"),
+                      tag.get("TCON"), tag.get("TPUB"), tag.get("TSRC"), tag.get("TLEN"), id3_error)
         if id3.duration is "":
             id3.duration = song_length(song.location_local)
         return song, id3
@@ -93,27 +82,29 @@ def get_data(database_entry, genre_map, decade_map, tempo_map):
         print("File does not exist")
         return song, None
 
-def tag_write(id3, location):
+
+def tag_write(id3_data, location):
     try:
-        tag = stagger.read_tag(location)
+        tag = MP3(location, ID3=mutagen.id3.ID3)
     except Exception as e:
         print(e)
-        tag = stagger.default_tag()
+        tag = None
 
-    tag["TPE1"] = id3.artist
-    tag["TIT2"] = id3.title
-    tag["TALB"] = id3.album
-    tag["TCOM"] = id3.composer
-    tag["TPUB"] = id3.publisher
-    tag["TYER"] = str(id3.year)
-    tag["TCON"] = id3.genres_all
-    tag["TLEN"] = str(int(float(id3.duration)))
-    if id3.isrc != "":
-        tag["TSRC"] = id3.isrc
-    tag.write(location)
+    tag.tags["TPE1"] = mutagen.id3.TPE1(encoding=3, text=[id3_data.artist])
+    tag.tags["TIT2"] = mutagen.id3.TIT2(encoding=3, text=[id3_data.title])
+    tag.tags["TALB"] = mutagen.id3.TALB(encoding=3, text=[id3_data.album])
+    tag.tags["TCOM"] = mutagen.id3.TCOM(encoding=3, text=[id3_data.composer])
+    tag.tags["TPUB"] = mutagen.id3.TPUB(encoding=3, text=[id3_data.publisher])
+    tag.tags["TDRC"] = mutagen.id3.TDRC(encoding=3, text=[str(id3_data.year)])
+    tag.tags["TCON"] = mutagen.id3.TCON(encoding=3, text=[id3_data.genres_all])
+    tag.tags["TLEN"] = mutagen.id3.TLEN(encoding=3, text=[str(int(float(str(id3_data.duration))))])
+    if id3_data.isrc != "":
+        tag.tags["TSRC"] = mutagen.id3.TSRC(encoding=3, text=[id3_data.isrc])
+    tag.save(v2_version=3)
+
 
 def get_genre_id(genre, reverse_genre_map):
-    genre=genre.lower()
+    genre = genre.lower()
     if genre in reverse_genre_map:
         return reverse_genre_map[genre]
     else:
@@ -142,22 +133,25 @@ def insert_string(string1, string2, label_db, label_id3):
         label_db.config(bg="light salmon")
         label_id3.config(bg="light salmon")
 
+
 def check_genre(database_genre, id3_genre):
-        list_db = list(dict.fromkeys(database_genre.split(", ")))[:3]
-        list_id3 = list(dict.fromkeys(id3_genre.split(", ")))
-        for item in list_db:
-            if item not in list_id3:
-                print("Genre mismatch")
-                print("DB: ", item)
-                print("ID3: ", list_id3)
-                return False
-        return True
+    list_db = list(dict.fromkeys(database_genre.split(", ")))[:3]
+    list_id3 = list(dict.fromkeys(id3_genre.split(", ")))
+    for item in list_db:
+        if item not in list_id3:
+            print("Genre mismatch")
+            print("DB: ", item)
+            print("ID3: ", list_id3)
+            return False
+    return True
+
 
 def discogs_lookup(song):
     google_string = song.artist + " " + song.title
     google_string = google_string.replace(" ", "%20")
     google_string = google_string.replace("-", "").replace("&", "").replace("#", "").replace("\\", "")
     system("start https://www.discogs.com/search?q=" + google_string)
+
 
 def google_lookup(song):
     google_string = song.artist + " " + song.title

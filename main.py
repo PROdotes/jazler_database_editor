@@ -23,6 +23,7 @@ reverse_decade_map = {v: k for k, v in decade_map.items()}
 
 tempo_map = db.generate_tempo_map()
 
+
 def query_execute(field_in, match, query):
     field_out = "fldArtistName"
     if field_in == "artist":
@@ -43,8 +44,10 @@ def query_execute(field_in, match, query):
     elif match == "equals":
         return db.fetch_songs(field_out, query, True)
 
+
 def get_query():
-    return query_execute("artist", "contains", "")
+    return query_execute("artist", "contains", "elena brn")
+
 
 song_query = get_query()
 position = 0
@@ -89,6 +92,10 @@ def update_fields():
     texts_db["duration"].config(state="disabled")
     texts_id3["duration"].config(state="disabled")
     insert_string(song.isrc, id3.isrc, texts_db["isrc"], texts_id3["isrc"])
+    #if both isrc are empty or none set bg to white
+    if (song.isrc == "" or song.isrc is None) and (id3.isrc == "" or id3.isrc is None):
+        texts_db["isrc"].config(bg="white")
+        texts_id3["isrc"].config(bg="white")
     label_counter.config(text=str(position + 1) + "/" + str(len(song_query)))
     label_id3_error.config(text=id3.error)
     label_id3_error.config(bg="DarkSeaGreen")
@@ -97,7 +104,8 @@ def update_fields():
     text_jump.delete(1.0, END)
     text_jump.insert(1.0, str(position + 1))
     label_counter.config(text=str(position + 1) + "/" + str(len(song_query)))
-    label_filename.config(text=(song.location_local + "    <--->    " + song.location_correct).replace("z:\\songs\\", ""))
+    label_filename.config(
+        text=(song.location_local + "    <--->    " + song.location_correct).replace("z:\\songs\\", ""))
     label_filename.config(bg="light salmon")
     if song.location_local.lower() == song.location_correct.lower():
         label_filename.config(bg="DarkSeaGreen")
@@ -137,7 +145,6 @@ def save_song(rename):
     id3.year = int(texts_id3["year"].get("1.0", END).strip())
     id3.genres_all = texts_id3["genre"].get("1.0", END).strip()
     id3.isrc = texts_id3["isrc"].get("1.0", END).strip()
-
 
     def is_valid_attribute(value):
         return value is not None and value != ""
@@ -208,7 +215,7 @@ def save_song(rename):
             "fldCDKey": song.isrc,
             "fldCat2": song.genre_04_id,
             "fldDuration": song.duration,
-        # Add other fields as needed
+            # Add other fields as needed
         }
         db.update_song_fields(song.id, update_fields_dict)
         tag_write(id3, song.location_local)
@@ -238,6 +245,7 @@ def get_song(delta):
     song, id3 = get_data(song_query[position], genre_map, decade_map, tempo_map)
     update_fields()
 
+
 def query_db():
     window_query = Toplevel(window)
     window_query.title("Database query")
@@ -249,12 +257,14 @@ def query_db():
     dropdown_match.set("contains")
     text_query = Text(window_query, height=1, width=50)
     text_query.grid(row=0, column=2)
-    button_send_query = Button(window_query, text="Query", command=lambda: query_button_click(dropdown_field.get(),dropdown_match.get(),
-                                                                                              text_query.get("1.0", END).strip(), window_query))
+    button_send_query = Button(window_query, text="Query",
+                               command=lambda: query_button_click(dropdown_field.get(), dropdown_match.get(),
+                                                                  text_query.get("1.0", END).strip(), window_query))
     button_send_query.grid(row=0, column=3)
     window_query.bind("<Return>", lambda event: query_button_click(dropdown_field.get(), dropdown_match.get(),
                                                                    text_query.get("1.0", END).strip(), window_query))
     window.withdraw()
+
 
 def query_button_click(drop_field, drop_match, text_query, window_sent):
     global song_query
@@ -262,6 +272,7 @@ def query_button_click(drop_field, drop_match, text_query, window_sent):
     get_song(0)
     window_sent.withdraw()
     window.deiconify()
+
 
 window = Tk()
 
@@ -313,31 +324,28 @@ for field in fields:
     # Increment row count
     row_count += 1
 
-
-button_query = Button(text="Query (F1)", command=lambda : query_db())
+button_query = Button(text="Query (F1)", command=lambda: query_db())
 button_query.grid(row=row_count, column=1)
-button_google = Button(text="Google (F3)", command=lambda : google_lookup(song))
+button_google = Button(text="Google (F3)", command=lambda: google_lookup(song))
 button_google.grid(row=row_count, column=2)
-button_discog = Button(text="Discogs (F4)", command=lambda : discogs_lookup(song))
+button_discog = Button(text="Discogs (F4)", command=lambda: discogs_lookup(song))
 button_discog.grid(row=row_count, column=3)
 
-button_save = Button(text="Save (F5)", command=lambda : save_song(False))
+button_save = Button(text="Save (F5)", command=lambda: save_song(False))
 button_save.grid(row=row_count, column=6)
-button_rename = Button(text="Rename (F6)", command=lambda : save_song(True))
+button_rename = Button(text="Rename (F6)", command=lambda: save_song(True))
 button_rename.grid(row=row_count, column=7)
 label_id3_error = Label(window, text="")
 label_id3_error.grid(row=row_count, column=8)
 
-
-
 row_count += 1
 
-button_previous = Button(text="Prev (F9)", command=lambda : get_song(-1))
+button_previous = Button(text="Prev (F9)", command=lambda: get_song(-1))
 button_previous.grid(row=row_count, column=2)
-button_next = Button(text="Next (F10)", command=lambda : get_song(1))
+button_next = Button(text="Next (F10)", command=lambda: get_song(1))
 button_next.grid(row=row_count, column=3)
 
-button_jump = Button(text="Jump (F11)", command=lambda : text_jump.focus())
+button_jump = Button(text="Jump (F11)", command=lambda: get_song(None))
 button_jump.grid(row=row_count, column=6)
 text_jump = Text(height=1, width=5)
 text_jump.insert(1.0, "1")
@@ -345,8 +353,6 @@ text_jump.grid(row=row_count, column=7)
 label_counter = Label(window, text="0/0")
 label_counter.grid(row=row_count, column=8)
 label_counter.config(bg="DarkSeaGreen")
-
-
 
 window.bind("<F1>", lambda event: query_db())
 window.bind("<F3>", lambda event: google_lookup(song))
@@ -357,7 +363,6 @@ window.bind("<F9>", lambda event: get_song(-1))
 window.bind("<F10>", lambda event: get_song(1))
 window.bind("<F11>", lambda event: get_song(None))
 window.bind("<F12>", lambda event: text_jump.focus())
-
 
 get_song(0)
 

@@ -36,7 +36,7 @@ def list_to_string(genre0, strings):
 
 class Song:
     def __init__(self, input_data, genres, decades, tempos):
-        # print(input_data)
+        print(input_data)
         self.id = input_data[0]
         self.artist_id = input_data[1]
         self.title = input_data[2]
@@ -82,8 +82,11 @@ class SongID3:
         self.title = title
         self.composer = composer
         self.album = album
-        self.year = int(year)
-        self.genres_all = genres
+        if year is None:
+            self.year = 0
+        else:
+            self.year = int(str(year))
+        self.genres_all = str(genres).lower()
         self.publisher = publisher
         self.isrc = isrc
         self.duration = duration
