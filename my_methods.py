@@ -25,7 +25,11 @@ def column_names(cursor, table_name):
 
 
 def calc_decade(year):
-    return str(year - year % 10) + "'s"
+    if year == "" or year is None:
+        return "Not Entered"
+    else:
+        year = int(year)
+        return str(year - year % 10) + "'s"
 
 
 def generate_genre_map(cursor):
@@ -56,9 +60,8 @@ def generate_tempo_map(cursor):
     return tempo_map
 
 
-def get_data(song_query, number, genre_map, decade_map, tempo_map):
-    row = song_query[number]
-    song = Song(row, genre_map, decade_map, tempo_map)
+def get_data(database_entry, genre_map, decade_map, tempo_map):
+    song = Song(database_entry, genre_map, decade_map, tempo_map)
 
     song.id3_data()
     #print(song.duration)
@@ -72,19 +75,42 @@ def get_data(song_query, number, genre_map, decade_map, tempo_map):
             id3_error = ""
         except Exception as e:
             print(f"---Error while reading tag: {e}")
-            id3_error = "ID3 tag error"
+            id3_error = "ID3 error"
             tag = stagger.default_tag()
-        i3d_tags = ["TPE1", "TIT2", "TCOM", "TALB", "TCON", "TPUB", "TSRC", "TDRC", "TLEN"]
+        i3d_tags = ["TPE1", "TIT2", "TCOM", "TALB", "TCON", "TPUB", "TSRC", "TLEN", "TYER"]
         for id3_name in i3d_tags:
             if not tag.__contains__(id3_name):
                 tag.__setitem__(id3_name, "")
-        # print(f'Artist: {tag[TPE1]}, Title: {tag[TIT2]}, Composer: {tag[TCOM]}, Album: {tag[TALB]}, '
-        #       f'Year: {tag[TDRC]}, Genres: {tag[TCON]}, Publisher: {tag[TPUB]}, ISRC: {tag[TSRC]}')
+        if tag[TYER].text[0] == "":
+            tag[TYER] = str(0)
         id3 = SongID3(tag.artist, tag.title, tag.composer, tag.album,
-                      tag[TDRC].text[0], tag.genre.lower(), tag[TPUB].text[0], tag[TSRC].text[0], tag[TLEN].text[0],
+                      int(tag[TYER].text[0]), tag.genre.lower(), tag[TPUB].text[0], tag[TSRC].text[0], tag[TLEN].text[0],
                       id3_error)
-        return song, id3, tag
+        if id3.duration is "":
+            id3.duration = song_length(song.location_local)
+        return song, id3
+    else:
+        print("File does not exist")
+        return song, None
 
+def tag_write(id3, location):
+    try:
+        tag = stagger.read_tag(location)
+    except Exception as e:
+        print(e)
+        tag = stagger.default_tag()
+
+    tag["TPE1"] = id3.artist
+    tag["TIT2"] = id3.title
+    tag["TALB"] = id3.album
+    tag["TCOM"] = id3.composer
+    tag["TPUB"] = id3.publisher
+    tag["TYER"] = str(id3.year)
+    tag["TCON"] = id3.genres_all
+    tag["TLEN"] = str(int(float(id3.duration)))
+    if id3.isrc != "":
+        tag["TSRC"] = id3.isrc
+    tag.write(location)
 
 def get_genre_id(genre, reverse_genre_map):
     genre=genre.lower()
@@ -102,27 +128,30 @@ def copy_text(text_1, text_2):
 
 
 def insert_string(string1, string2, label_db, label_id3):
-    if string1 == "-":
+    if string1 == "-" or string1 is None:
         string1 = ""
-    if string2 == "-":
+    if string2 == "-" or string2 is None:
         string2 = ""
-    if string1 is None or string1 == "":
-        string1 = string2
-    if string2 is None or string2 == "":
-        string2 = string1
     label_db.delete(1.0, END)
     label_db.insert(1.0, string1)
+    label_db.config(bg="white")
     label_id3.delete(1.0, END)
     label_id3.insert(1.0, string2)
+    label_id3.config(bg="white")
     if str(string1) == "" or str(string1) != str(string2):
         label_db.config(bg="light salmon")
-    else:
-        label_db.config(bg="white")
-    if str(string2) == "" or str(string1) != str(string2):
         label_id3.config(bg="light salmon")
-    else:
-        label_id3.config(bg="white")
 
+def check_genre(database_genre, id3_genre):
+        list_db = list(dict.fromkeys(database_genre.split(", ")))[:3]
+        list_id3 = list(dict.fromkeys(id3_genre.split(", ")))
+        for item in list_db:
+            if item not in list_id3:
+                print("Genre mismatch")
+                print("DB: ", item)
+                print("ID3: ", list_id3)
+                return False
+        return True
 
 def discogs_lookup(song):
     google_string = song.artist + " " + song.title

@@ -1,8 +1,7 @@
-import os
 from pyodbc import connect
 
 class Database:
-    def __init__(self, db_path, table_name="snDatabase"):
+    def __init__(self, db_path, table_name):
         self.db_path = db_path
         self.table_name = table_name
         self.conn = connect(f'Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path}')
@@ -23,7 +22,7 @@ class Database:
         self.cursor.execute("SELECT * from snCat1")
         genre_query = self.cursor.fetchall()
         genre_map = {entry[0]: entry[1].lower() for entry in genre_query}
-        genre_map[0] = "X"
+        genre_map[0] = "x"
         return genre_map
 
     def generate_decade_map(self):
@@ -35,10 +34,6 @@ class Database:
         self.cursor.execute("SELECT * from snCat3")
         tempo_query = self.cursor.fetchall()
         return {entry[0]: entry[1] for entry in tempo_query}
-
-    def fetch_songs_by_artist(self, artist_name):
-        self.cursor.execute(f"SELECT * from {self.table_name} WHERE fldArtistName LIKE ?", f'%{artist_name}%')
-        return self.cursor.fetchall()
 
     def update_song_filename(self, song_id, new_filename):
         self.cursor.execute(
@@ -61,6 +56,14 @@ class Database:
         )
         self.conn.commit()
 
-    def fetch_song_by_id(self, song_id):
-        self.cursor.execute(f"SELECT * FROM {self.table_name} WHERE AUID = ?", song_id)
-        return self.cursor.fetchall()[0]  # or handle IndexError as needed
+    def delete_song(self, song_id):
+        print(f"Deleting song with ID: {song_id}")
+        self.cursor.execute(f"DELETE FROM {self.table_name} WHERE AUID = ?", song_id)
+        self.conn.commit()
+
+    def fetch_songs(self, field, value, exact_match):
+        if exact_match:
+            self.cursor.execute(f"SELECT * FROM {self.table_name} WHERE {field} = ?", value)
+        else:
+            self.cursor.execute(f"SELECT * FROM {self.table_name} WHERE {field} LIKE ?", f'%{value}%')
+        return self.cursor.fetchall()

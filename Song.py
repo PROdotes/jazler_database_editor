@@ -30,6 +30,10 @@ def get_location(artist, title, genre, year):
     return os.path.join(folder, filename)
 
 
+def list_to_string(genre0, strings):
+    return ', '.join(strings).replace(f', {genre0}', "")
+
+
 class Song:
     def __init__(self, input_data, genres, decades, tempos):
         # print(input_data)
@@ -38,7 +42,6 @@ class Song:
         self.title = input_data[2]
         self.genre_01_id = input_data[3]
         self.genre_01_name = genres[self.genre_01_id]
-        self.genre = self.genre_01_name
         self.genre_02_id = input_data[4]
         self.genre_02_name = genres[self.genre_02_id]
         self.genre_03_id = input_data[5]
@@ -47,10 +50,10 @@ class Song:
         self.genre_04_name = decades[self.genre_04_id]
         self.genre_05_id = input_data[7]
         self.genre_05_name = tempos[self.genre_05_id]
-        self.genres_all = f'{self.genre_01_name}/{self.genre_02_name}/{self.genre_03_name} - {self.genre_04_name} -' \
-                          f' {self.genre_05_name}'
+        self.genres_all = list_to_string(genres[0], [self.genre_01_name, self.genre_02_name, self.genre_03_name])
         self.decade = self.genre_04_name
-        self.year = input_data[8]
+        self.tempo = self.genre_05_name
+        self.year = int(input_data[8])
         self.enabled = input_data[12]
         self.auto_play = input_data[13]
         self.duration = input_data[14]
@@ -62,25 +65,25 @@ class Song:
         self.publisher = input_data[32]
         self.artist = input_data[36]
         self.exists = os.path.isfile(self.location.lower().replace("b:", "z:"))
-        self.location_correct = get_location(self.artist, self.title, self.genre, self.year)
+        self.location_correct = get_location(self.artist, self.title, self.genre_01_name, self.year)
 
     def basic_data(self):
         print(f'Artist: {self.artist}, Title: {self.title}, Album: {self.album}')
 
     def id3_data(self):
         print(f'Artist: {self.artist}, Title: {self.title}, Composer: {self.composer}, Album: {self.album}, '
-              f'Year: {self.year}, Genres: {self.genres_all}, Publisher: {self.publisher}, ISRC: {self.isrc}, '
-              f'ID: {self.id}', f'Duration: {self.duration} seconds')
+              f'Year: {self.year}, Genres: {self.genres_all}, Decade: {self.decade}, Tempo: {self.tempo}, Publisher: {self.publisher}, '
+              f'ISRC: {self.isrc}, ID: {self.id}', f'Duration: {self.duration} seconds')
 
 
 class SongID3:
-    def __init__(self, artist, title, composer, album, year, genre, publisher, isrc, duration, error):
+    def __init__(self, artist, title, composer, album, year, genres, publisher, isrc, duration, error):
         self.artist = artist
         self.title = title
         self.composer = composer
         self.album = album
-        self.year = year
-        self.genre = genre
+        self.year = int(year)
+        self.genres_all = genres
         self.publisher = publisher
         self.isrc = isrc
         self.duration = duration
