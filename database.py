@@ -5,43 +5,56 @@ class Database:
     def __init__(self, db_path, table_name):
         self.db_path = db_path
         self.table_name = table_name
-        self.conn = connect(f'Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={db_path}')
-        self.cursor = self.conn.cursor()
 
-    def close(self):
-        self.cursor.close()
-        self.conn.close()
+    def _get_connection(self):
+        return connect(f'Driver={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={self.db_path}')
 
-    def table_names(self):
-        return [row.table_name for row in self.cursor.tables()]
+    def _fetch(self, query, params=None):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            conn.close()
 
-    def column_names(self):
-        self.cursor.execute(f'SELECT * FROM {self.table_name}')
-        return [name[0] for name in self.cursor.description]
+    def _execute(self, query, params=None):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        try:
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            conn.commit()
+        finally:
+            cursor.close()
+            conn.close()
 
     def generate_genre_map(self):
-        self.cursor.execute("SELECT * from snCat1")
-        genre_query = self.cursor.fetchall()
-        genre_map = {entry[0]: entry[1].lower() for entry in genre_query}
+        query = "SELECT * from snCat1"
+        rows = self._fetch(query)
+        genre_map = {entry[0]: entry[1].lower() for entry in rows}
         genre_map[0] = "x"
         return genre_map
 
     def generate_decade_map(self):
-        self.cursor.execute("SELECT * from snCat2")
-        decade_query = self.cursor.fetchall()
-        return {entry[0]: entry[1] for entry in decade_query}
+        query = "SELECT * from snCat2"
+        rows = self._fetch(query)
+        return {entry[0]: entry[1] for entry in rows}
 
     def generate_tempo_map(self):
-        self.cursor.execute("SELECT * from snCat3")
-        tempo_query = self.cursor.fetchall()
-        return {entry[0]: entry[1] for entry in tempo_query}
+        query = "SELECT * from snCat3"
+        rows = self._fetch(query)
+        return {entry[0]: entry[1] for entry in rows}
 
     def update_song_filename(self, song_id, new_filename):
-        self.cursor.execute(
-            f"UPDATE {self.table_name} SET fldFilename = ? WHERE AUID = ?",
-            new_filename, song_id
-        )
-        self.conn.commit()
+        query = f"UPDATE {self.table_name} SET fldFilename = ? WHERE AUID = ?"
+        self._execute(query, (new_filename, song_id))
 
     def update_song_fields(self, song_id, fields):
         """
@@ -51,20 +64,22 @@ class Database:
         columns = ', '.join([f"{k}=?" for k in fields.keys()])
         values = list(fields.values())
         values.append(song_id)
-        self.cursor.execute(
-            f"UPDATE {self.table_name} SET {columns} WHERE AUID = ?",
-            *values
-        )
-        self.conn.commit()
+        query = f"UPDATE {self.table_name} SET {columns} WHERE AUID = ?"
+        self._execute(query, tuple(values))
 
     def delete_song(self, song_id):
         print(f"Deleting song with ID: {song_id}")
-        self.cursor.execute(f"DELETE FROM {self.table_name} WHERE AUID = ?", song_id)
-        self.conn.commit()
+        query = f"DELETE FROM {self.table_name} WHERE AUID = ?"
+        self._execute(query, (song_id,))
 
     def fetch_songs(self, field, value, exact_match):
         if exact_match:
-            self.cursor.execute(f"SELECT * FROM {self.table_name} WHERE {field} = ?", value)
+            query = f"SELECT * FROM {self.table_name} WHERE {field} = ?"
+            return self._fetch(query, (value,))
         else:
-            self.cursor.execute(f"SELECT * FROM {self.table_name} WHERE {field} LIKE ?", f'%{value}%')
-        return self.cursor.fetchall()
+            query = f"SELECT * FROM {self.table_name} WHERE {field} LIKE ?"
+            return self._fetch(query, (f'%{value}%',))
+
+    def fetch_all_songs(self):
+        query = f"SELECT * FROM {self.table_name}"
+        return self._fetch(query)
