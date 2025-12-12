@@ -5,7 +5,7 @@ import webbrowser
 from typing import Any, Tuple
 from os import makedirs
 from os import path
-from tkinter import Tk, Toplevel, Label, Button, Text, END, messagebox
+from tkinter import Tk, Toplevel, Label, Button, Entry, END, messagebox, ttk, Frame
 from tkinter.ttk import Combobox
 from Song import SongID3, list_to_string, calc_decade, get_genre_id, check_genre, get_data
 from mp3_stuff import tag_write
@@ -77,94 +77,154 @@ class JazlerEditor(Tk):
         self.attributes('-topmost', True)
         self.after_idle(self.attributes, '-topmost', False)
         self.title(f"Jazler Editor - [{'LIVE' if self.use_live else 'TEST'}]")
+        self.config(bg="#2b2b2b")
 
-        # Database Status Indicator
-        db_status_text = "⚠️ CAUTION: LIVE DATABASE ⚠️" if self.use_live else "SAFE MODE: Test Database"
-        db_status_bg = "red" if self.use_live else "forest green"
-        label_db_status = Label(self, text=db_status_text, bg=db_status_bg, fg="white", font=("Helvetica", 12, "bold"))
-        label_db_status.grid(row=0, column=1, columnspan=8, sticky="ew", pady=(5, 5))
+        # Styles (Dark Mode)
+        style = ttk.Style()
+        try:
+             style.theme_use('clam')
+        except:
+             pass 
+        
+        # Configure Dark Theme Colors
+        BG_DARK = "#2b2b2b"
+        BG_LIGHTER = "#3c3f41"
+        FG_WHITE = "#ffffff"
+        
+        style.configure("TFrame", background=BG_DARK)
+        style.configure("TLabel", background=BG_DARK, foreground=FG_WHITE)
+        style.configure("Bold.TLabel", background=BG_DARK, foreground=FG_WHITE, font=("Segoe UI", 9, "bold"))
+        
+        style.configure("TButton", background=BG_LIGHTER, foreground=FG_WHITE, borderwidth=1, focuscolor=BG_DARK)
+        style.map("TButton", background=[("active", "#4c5052"), ("disabled", "#555555")])
 
-        # Containers
-        self.labels_db = {}
-        self.labels_id3 = {}
+        # Main Container
+        main_frame = Frame(self, bg=BG_DARK)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        # 1. Status Bar
+        status_text = "⚠️ CAUTION: LIVE DATABASE ⚠️" if self.use_live else "SAFE MODE: Test Database"
+        status_bg = "#dc3545" if self.use_live else "#28a745"
+        
+        lbl_status = Label(main_frame, text=status_text, bg=status_bg, fg="white", 
+                          font=("Segoe UI", 11, "bold"), pady=8)
+        lbl_status.grid(row=0, column=0, columnspan=5, sticky="ew", pady=(0, 15))
+
+        # 2. Field Headers
+        headers = ["Field", "Database Value", "Actions", "MP3 Tag Value"]
+        for i, h in enumerate(headers):
+             ttk.Label(main_frame, text=h, style="Bold.TLabel").grid(row=1, column=i, pady=(0, 5))
+
+        # 3. Fields
         self.texts_db = {}
         self.texts_id3 = {}
         self.buttons_db = {}
         self.buttons_id3 = {}
+        
+        main_frame.columnconfigure(1, weight=1)
+        main_frame.columnconfigure(3, weight=1)
+        # Balance the layout: Col 0 (Labels) ~= Col 4 (Empty Right Margin)
+        main_frame.columnconfigure(0, minsize=120)
+        main_frame.columnconfigure(4, minsize=120)
 
-        # Initial labels
-        row_count = 1
-        self.label_filename = Label(self, text="File: ")
-        self.label_filename.grid(row=row_count, column=1, columnspan=8)
-        row_count += 1
-
-        # Create widgets for each field
         fields = ["artist", "title", "album", "composer", "publisher", "year", "decade", "genre", "isrc", "duration"]
+        row_count = 2
+        
         for field in fields:
-            self.labels_db[field] = Label(self, text=f"{field} DB: ", width=15, anchor="e")
-            self.labels_id3[field] = Label(self, text=f"{field} ID3: ", width=15, anchor="w")
+            # Name
+            f_name = field.capitalize()
+            if field == "genres_all": f_name = "Genres"
+            if field == "isrc": f_name = "ISRC"
+            
+            ttk.Label(main_frame, text=f_name + ":", anchor="e").grid(row=row_count, column=0, sticky="e", padx=(0, 10), pady=2)
 
-            self.texts_db[field] = Text(self, height=1, width=50)
-            self.texts_id3[field] = Text(self, height=1, width=50)
-
-            if field in ["decade", "duration", "artist"]:
-                self.texts_db[field].config(state="disabled", fg="gray")
-                if field != "artist":
-                    self.texts_id3[field].config(state="disabled", fg="gray")
-
-            self.buttons_db[field] = Button(self, text="->", width=3)
-            self.buttons_id3[field] = Button(self, text="<-", width=3)
-
-            self.labels_db[field].grid(row=row_count, column=1)
-            self.texts_db[field].grid(row=row_count, column=2, columnspan=2)
-            self.buttons_db[field].grid(row=row_count, column=4)
+            # DB Entry (Dark Input)
+            self.texts_db[field] = Entry(main_frame, relief="solid", bd=1, font=("Segoe UI", 10), 
+                                        bg=BG_LIGHTER, fg=FG_WHITE, insertbackground="white")
+            self.texts_db[field].grid(row=row_count, column=1, sticky="ew", pady=2)
+            
+            # Action Buttons
+            action_frame = Frame(main_frame, bg=BG_DARK)
+            action_frame.grid(row=row_count, column=2, padx=5)
+            
+            self.buttons_db[field] = ttk.Button(action_frame, text="->", width=3)
+            self.buttons_db[field].pack(side="left")
             self.buttons_db[field].bind("<Button-1>", lambda event, f=field: copy_text(self.texts_db[f], self.texts_id3[f], END))
 
+            self.buttons_id3[field] = ttk.Button(action_frame, text="<-", width=3)
             if field != "artist":
-                self.buttons_id3[field].grid(row=row_count, column=5)
+                self.buttons_id3[field].pack(side="left")
                 self.buttons_id3[field].bind("<Button-1>", lambda event, f=field: copy_text(self.texts_id3[f], self.texts_db[f], END))
 
-            self.texts_id3[field].grid(row=row_count, column=6, columnspan=2)
-            self.labels_id3[field].grid(row=row_count, column=8)
+            # ID3 Entry (Dark Input)
+            self.texts_id3[field] = Entry(main_frame, relief="solid", bd=1, font=("Segoe UI", 10),
+                                         bg=BG_LIGHTER, fg=FG_WHITE, insertbackground="white")
+            self.texts_id3[field].grid(row=row_count, column=3, sticky="ew", pady=2)
+
+            # Disabled styling
+            if field in ["decade", "duration", "artist"]:
+                 self.texts_db[field].config(state="disabled", disabledbackground="#1e1e1e", disabledforeground="#6c757d")
+                 if field != "artist":
+                     self.texts_id3[field].config(state="disabled", disabledbackground="#1e1e1e", disabledforeground="#6c757d")
+
             row_count += 1
 
-        # Control Buttons
-        self.button_query = Button(self, text="Query (F1)", command=self.query_db)
-        self.button_query.grid(row=row_count, column=1)
+        # 4. Control Bar
+        control_frame = Frame(self, bg="#1e1e1e", pady=10, padx=20) # Slightly darker for visual anchor
+        control_frame.pack(fill="x", side="bottom")
+
+        # Left: Lookup
+        self.button_query = ttk.Button(control_frame, text="Query (F1)", command=self.query_db)
+        self.button_query.pack(side="left", padx=2)
         
-        self.button_google = Button(self, text="Google (F3)", command=lambda: google_lookup(self.song))
-        self.button_google.grid(row=row_count, column=2)
+        self.button_google = ttk.Button(control_frame, text="Google (F3)", command=lambda: google_lookup(self.song))
+        self.button_google.pack(side="left", padx=2)
         
-        self.button_discog = Button(self, text="Discogs (F4)", command=lambda: discogs_lookup(self.song))
-        self.button_discog.grid(row=row_count, column=3)
+        self.button_discog = ttk.Button(control_frame, text="Discogs (F4)", command=lambda: discogs_lookup(self.song))
+        self.button_discog.pack(side="left", padx=2)
+
+        # Center: Navigation
+        nav_frame = Frame(control_frame, bg="#1e1e1e")
+        nav_frame.pack(side="left", padx=40)
         
-        self.button_save = Button(self, text="Save (F5)", command=lambda: self.save_song(False))
-        self.button_save.grid(row=row_count, column=6)
+        self.button_previous = ttk.Button(nav_frame, text="< Prev (F9)", width=8, command=lambda: self.get_song(-1))
+        self.button_previous.pack(side="left")
         
-        self.button_rename = Button(self, text="Rename (F6)", command=lambda: self.save_song(True))
-        self.button_rename.grid(row=row_count, column=7)
+        self.text_jump = Entry(nav_frame, width=5, justify="center", relief="solid", bd=1, 
+                              bg=BG_LIGHTER, fg=FG_WHITE, insertbackground="white")
+        self.text_jump.insert(0, "1")
+        self.text_jump.pack(side="left", padx=5)
         
-        self.label_id3_error = Label(self, text="")
-        self.label_id3_error.grid(row=row_count, column=8)
+        self.label_counter = Label(nav_frame, text="0/0", bg="#1e1e1e", fg="white", font=("Segoe UI", 9))
+        self.label_counter.pack(side="left", padx=5)
+
+        self.button_jump = ttk.Button(nav_frame, text="Jump (F11)", width=6, command=lambda: self.get_song(None))
+        self.button_jump.pack(side="left", padx=5)
         
-        row_count += 1
+        self.button_next = ttk.Button(nav_frame, text="Next > (F10)", width=8, command=lambda: self.get_song(1))
+        self.button_next.pack(side="left")
+
+        # Right: Save
+        self.button_rename = ttk.Button(control_frame, text="Rename (F6)", command=lambda: self.save_song(True))
+        self.button_rename.pack(side="right", padx=2)
         
-        self.button_previous = Button(self, text="Prev (F9)", command=lambda: self.get_song(-1))
-        self.button_previous.grid(row=row_count, column=2)
+        self.button_save = ttk.Button(control_frame, text="Save (F5)", command=lambda: self.save_song(False))
+        self.button_save.pack(side="right", padx=2)
         
-        self.button_next = Button(self, text="Next (F10)", command=lambda: self.get_song(1))
-        self.button_next.grid(row=row_count, column=3)
+        # Status footer
+        footer_frame = Frame(self, bg=BG_DARK, pady=5)
+        footer_frame.pack(side="bottom", fill="x")
         
-        self.button_jump = Button(self, text="Jump (F11)", command=lambda: self.get_song(None))
-        self.button_jump.grid(row=row_count, column=6)
+        # Status Labels
+        font_status = ("Segoe UI", 10, "bold")
+        self.lbl_stat_file = Label(footer_frame, text="File Status", bg=BG_DARK, fg=FG_WHITE, font=font_status)
+        self.lbl_stat_file.pack(side="left", expand=True)
+
+        self.lbl_stat_genre = Label(footer_frame, text="Genre Status", bg=BG_DARK, fg=FG_WHITE, font=font_status)
+        self.lbl_stat_genre.pack(side="left", expand=True)
         
-        self.text_jump = Text(self, height=1, width=5)
-        self.text_jump.insert(1.0, "1")
-        self.text_jump.grid(row=row_count, column=7)
-        
-        self.label_counter = Label(self, text="0/0")
-        self.label_counter.grid(row=row_count, column=8)
-        self.label_counter.config(bg="DarkSeaGreen")
+        self.lbl_stat_isrc = Label(footer_frame, text="ISRC Status", bg=BG_DARK, fg=FG_WHITE, font=font_status)
+        self.lbl_stat_isrc.pack(side="left", expand=True)
 
         # Key Bindings
         self.bind("<F1>", lambda event: self.query_db())
@@ -179,14 +239,25 @@ class JazlerEditor(Tk):
 
     def toggle_controls(self, state="normal"):
         """Enable or disable navigations buttons to prevent race conditions."""
-        state_val = "normal" if state else "disabled"
+        # state argument comes as boolean True/False often, or "normal" string from old calls?
+        # Usage checks: toggle_controls(False), toggle_controls(True).
+        # So state is boolean to enable (True) or disable (False).
+        if state is True or state == "normal":
+            state_val = ["!disabled"]
+        else:
+            state_val = ["disabled"]
+            
         buttons = [
             self.button_previous, self.button_next, self.button_jump,
             self.button_query, self.button_save, self.button_rename,
             self.button_google, self.button_discog
         ]
         for btn in buttons:
-            btn.config(state=state_val)
+            try:
+                btn.state(state_val)
+            except:
+                # Fallback if I missed converting one to ttk or something (Entry?)
+                pass
 
     def query_execute(self, field_in, match, query):
         save_last_query(field_in, match, query)
@@ -263,34 +334,50 @@ class JazlerEditor(Tk):
         
         val1, val2, color = process_string_comparison(val_song, val_id3)
         
-        txt_db.delete(1.0, END)
-        txt_db.insert(1.0, val1)
+        txt_db.delete(0, END)
+        txt_db.insert(0, val1)
         txt_db.config(bg=color)
         
-        txt_id3.delete(1.0, END)
-        txt_id3.insert(1.0, val2)
+        txt_id3.delete(0, END)
+        txt_id3.insert(0, val2)
         txt_id3.config(bg=color)
 
     def _update_status_indicators(self):
         # Genre Validation
         test_genre = check_genre(self.song.genres_all, self.id3.genres_all)
-        bg_genre = "white" if test_genre else "light salmon"
+        bg_genre = "#3c3f41" if test_genre else "#662222"
         self.texts_db["genre"].config(bg=bg_genre)
         self.texts_id3["genre"].config(bg=bg_genre)
+        
+        if test_genre:
+             self.lbl_stat_genre.config(text="✔ Genres Match", fg="#28a745")
+        else:
+             self.lbl_stat_genre.config(text="⚠️ Genre Mismatch", fg="#fd7e14")
             
         # ISRC Validation
+        isrc_match = str(self.song.isrc) == str(self.id3.isrc)
+        
+        # Override BG for empty ISRC to be normal (not error)
         if not self.song.isrc and not self.id3.isrc:
-            self.texts_db["isrc"].config(bg="white")
-            self.texts_id3["isrc"].config(bg="white")
+            self.texts_db["isrc"].config(bg="#3c3f41")
+            self.texts_id3["isrc"].config(bg="#3c3f41")
             
-        # Count & Error Validation
+        if isrc_match:
+             self.lbl_stat_isrc.config(text="✔ ISRC Match", fg="#28a745")
+        else:
+             self.lbl_stat_isrc.config(text="⚠️ ISRC Mismatch", fg="#fd7e14")
+            
+        # Count & File Status
         self.label_counter.config(text=f"{self.position + 1}/{len(self.song_query)}")
-        self.label_id3_error.config(text=self.id3.error)
-        bg_error = "DarkSeaGreen" if self.id3.error == "No error" else "light salmon"
-        self.label_id3_error.config(bg=bg_error)
+        
+        err = self.id3.error
+        if err == "No error":
+            self.lbl_stat_file.config(text="✔ File OK", fg="#28a745")
+        else:
+            self.lbl_stat_file.config(text=f"❌ {err}", fg="#dc3545")
             
-        self.text_jump.delete(1.0, END)
-        self.text_jump.insert(1.0, str(self.position + 1))
+        self.text_jump.delete(0, END)
+        self.text_jump.insert(0, str(self.position + 1))
         
         # File Validation
         clean_loc = (self.song.location_local + "    <--->    " + self.song.location_correct).replace("z:\\songs\\", "")
@@ -330,22 +417,22 @@ class JazlerEditor(Tk):
             # Map 'genres_all' to 'genre' widget
             widget_key = "genre" if field == "genres_all" else field
             
-            val = self.texts_db[widget_key].get("1.0", END).strip()
+            val = self.texts_db[widget_key].get().strip()
             setattr(self.song, field, val)
             
-            val_id3 = self.texts_id3[widget_key].get("1.0", END).strip()
+            val_id3 = self.texts_id3[widget_key].get().strip()
             setattr(self.id3, field, val_id3)
             
-        self.id3.artist = self.texts_id3["artist"].get("1.0", END).strip()
+        self.id3.artist = self.texts_id3["artist"].get().strip()
 
         # Year handling
         try:
-            self.song.year = int(self.texts_db["year"].get("1.0", END).strip())
+            self.song.year = int(self.texts_db["year"].get().strip())
         except ValueError:
             self.song.year = 0
             
         try:
-            self.id3.year = int(self.texts_id3["year"].get("1.0", END).strip())
+            self.id3.year = int(self.texts_id3["year"].get().strip())
         except ValueError:
             self.id3.year = 0
 
@@ -390,9 +477,9 @@ class JazlerEditor(Tk):
         genre_ids = list(dict.fromkeys(genre_ids))
         print(genre_ids)
         
-        self.texts_db["genre"].delete(1.0, END)
+        self.texts_db["genre"].delete(0, END)
         self.song.genres_all = list_to_string(self.genre_map[0], genre_ids)
-        self.texts_db["genre"].insert(1.0, self.song.genres_all)
+        self.texts_db["genre"].insert(0, self.song.genres_all)
         
         genre_ids = genre_ids[:3]
         for genre_id in genre_ids:
@@ -480,7 +567,7 @@ class JazlerEditor(Tk):
     def get_song(self, delta):
         if delta is None:
             delta = 0
-            test = self.text_jump.get(1.0, END).strip()
+            test = self.text_jump.get().strip()
             print("-" + test + "-")
             try:
                 self.position = int(test) - 1
@@ -512,32 +599,39 @@ class JazlerEditor(Tk):
 
     def _finish_load_song(self, data):
         """Update UI with loaded data on main thread."""
-        self.song, self.id3 = data
-        self.update_fields()
-        self.toggle_controls(True)
+        try:
+            self.song, self.id3 = data
+            self.update_fields()
+        except Exception as e:
+            print(f"Error updating UI: {e}")
+            # messagebox.showerror("UI Error", str(e)) # Optional
+        finally:
+            self.toggle_controls(True)
 
     def query_db(self):
         window_query = Toplevel(self)
         window_query.title("Database query")
+        window_query.config(bg="#2b2b2b")
         
         dropdown_field = Combobox(window_query, values=["artist", "title", "album", "composer", "publisher", "year"])
-        dropdown_field.grid(row=0, column=0)
+        dropdown_field.grid(row=0, column=0, padx=5, pady=10)
         dropdown_field.set("artist")
         
         dropdown_match = Combobox(window_query, values=["contains", "equals"])
-        dropdown_match.grid(row=0, column=1)
+        dropdown_match.grid(row=0, column=1, padx=5, pady=10)
         dropdown_match.set("contains")
         
-        text_query = Text(window_query, height=1, width=50)
-        text_query.grid(row=0, column=2)
+        text_query = Entry(window_query, width=50, bg="#3c3f41", fg="white", insertbackground="white")
+        text_query.grid(row=0, column=2, padx=5, pady=10)
+        text_query.focus_set()
         
-        button_send_query = Button(window_query, text="Query",
+        button_send_query = ttk.Button(window_query, text="Query",
                                    command=lambda: self.query_button_click(dropdown_field.get(), dropdown_match.get(),
-                                                                      text_query.get("1.0", END).strip(), window_query))
-        button_send_query.grid(row=0, column=3)
+                                                                      text_query.get().strip(), window_query))
+        button_send_query.grid(row=0, column=3, padx=5, pady=10)
         
         window_query.bind("<Return>", lambda event: self.query_button_click(dropdown_field.get(), dropdown_match.get(),
-                                                                       text_query.get("1.0", END).strip(), window_query))
+                                                                       text_query.get().strip(), window_query))
         self.withdraw()
 
     def query_button_click(self, drop_field, drop_match, text_query, window_sent):
@@ -565,10 +659,10 @@ class JazlerEditor(Tk):
 
 
 def copy_text(text_1, text_2, end):
-    text_2.delete(1.0, end)
-    text_2.insert(end, text_1.get("1.0", end))
-    text_1.config(bg="white")
-    text_2.config(bg="white")
+    text_2.delete(0, end)
+    text_2.insert(0, text_1.get())
+    text_1.config(bg="#3c3f41")
+    text_2.config(bg="#3c3f41")
 
 
 def process_string_comparison(val1: Any, val2: Any) -> Tuple[str, str, str]:
@@ -584,9 +678,9 @@ def process_string_comparison(val1: Any, val2: Any) -> Tuple[str, str, str]:
     val1 = str(val1)
     val2 = str(val2)
     
-    bg_color = "white"
+    bg_color = "#3c3f41" # Dark Input BG
     if val1 == "" or val1 != val2:
-        bg_color = "light salmon"
+        bg_color = "#662222" # Dark Red for mismatch
         
     return val1, val2, bg_color
 

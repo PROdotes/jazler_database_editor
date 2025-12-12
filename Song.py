@@ -77,7 +77,7 @@ def check_genre(database_genre: str, id3_genre: str) -> bool:
     return True
 
 
-def get_data(database_entry: Tuple[Any, ...], genre_map: Dict[int, str], decade_map: Dict[int, str], tempo_map: Dict[int, str]) -> Tuple[Song, Optional[SongID3]]:
+def get_data(database_entry: Tuple[Any, ...], genre_map: Dict[int, str], decade_map: Dict[int, str], tempo_map: Dict[int, str]) -> Tuple['Song', Optional['SongID3']]:
     song = Song(database_entry, genre_map, decade_map, tempo_map)
 
     song.id3_data()
