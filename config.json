@@ -19,6 +19,6 @@
     "last_query": {
         "field": "artist",
         "match": "contains",
-        "value": "test"
+        "value": "ab"
     }
 }

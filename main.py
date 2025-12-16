@@ -7,10 +7,10 @@ from os import makedirs
 from os import path
 from tkinter import Tk, Toplevel, Label, Button, Entry, END, messagebox, ttk, Frame
 from tkinter.ttk import Combobox
-from Song import SongID3, list_to_string, calc_decade, get_genre_id, check_genre, get_data
-from mp3_stuff import tag_write
+from Song import Song, SongID3
+from mp3_stuff import AudioMetadata
 from database import Database
-from config import DB_PATH_LIVE, DB_PATH_TEST, save_last_query, load_last_query
+from config import app_config
 
 
 class JazlerEditor(Tk):
@@ -19,7 +19,9 @@ class JazlerEditor(Tk):
         self.withdraw() # Hide the main window immediately
         
         # Determine database
-        self.use_live, self.file, self.table_name = self.setup_database_config()
+        self.use_live = self.ask_database_mode()
+        self.file = app_config.set_db_mode(self.use_live)
+        self.table_name = 'snDatabase'
         self.db = self.connect_database()
 
         # Data Maps
@@ -34,6 +36,7 @@ class JazlerEditor(Tk):
         self.id3 = None
         self.song_query = self.get_initial_query()
         self.position = 0
+        self.is_loading = False
 
         # UI Initialization
         self.setup_ui()
@@ -44,7 +47,7 @@ class JazlerEditor(Tk):
         else:
             messagebox.showinfo("Info", "No songs found for initial query.")
 
-    def setup_database_config(self):
+    def ask_database_mode(self):
         start_root = Tk()
         start_root.withdraw()
         start_root.attributes('-topmost', True)
@@ -54,13 +57,7 @@ class JazlerEditor(Tk):
             parent=start_root
         )
         start_root.destroy()
-
-        if use_live:
-            file = DB_PATH_LIVE
-        else:
-            file = DB_PATH_TEST
-        
-        return use_live, file, 'snDatabase'
+        return use_live
 
     def connect_database(self):
         try:
@@ -177,18 +174,18 @@ class JazlerEditor(Tk):
         self.button_query = ttk.Button(control_frame, text="Query (F1)", command=self.query_db)
         self.button_query.pack(side="left", padx=2)
         
-        self.button_google = ttk.Button(control_frame, text="Google (F3)", command=lambda: google_lookup(self.song))
+        self.button_google = ttk.Button(control_frame, text="Google (F3)", command=lambda: WebSearch.google_lookup(self.song))
         self.button_google.pack(side="left", padx=2)
         
-        self.button_discog = ttk.Button(control_frame, text="Discogs (F4)", command=lambda: discogs_lookup(self.song))
+        self.button_discog = ttk.Button(control_frame, text="Discogs (F4)", command=lambda: WebSearch.discogs_lookup(self.song))
         self.button_discog.pack(side="left", padx=2)
 
         # Center: Navigation
         nav_frame = Frame(control_frame, bg="#1e1e1e")
         nav_frame.pack(side="left", padx=40)
         
-        self.button_previous = ttk.Button(nav_frame, text="< Prev (F9)", width=8, command=lambda: self.get_song(-1))
-        self.button_previous.pack(side="left")
+        self.button_jump = ttk.Button(nav_frame, text="Jump (F11)", width=6, command=lambda: self.get_song(None))
+        self.button_jump.pack(side="left", padx=5)
         
         self.text_jump = Entry(nav_frame, width=5, justify="center", relief="solid", bd=1, 
                               bg=BG_LIGHTER, fg=FG_WHITE, insertbackground="white")
@@ -198,8 +195,8 @@ class JazlerEditor(Tk):
         self.label_counter = Label(nav_frame, text="0/0", bg="#1e1e1e", fg="white", font=("Segoe UI", 9))
         self.label_counter.pack(side="left", padx=5)
 
-        self.button_jump = ttk.Button(nav_frame, text="Jump (F11)", width=6, command=lambda: self.get_song(None))
-        self.button_jump.pack(side="left", padx=5)
+        self.button_previous = ttk.Button(nav_frame, text="< Prev (F9)", width=8, command=lambda: self.get_song(-1))
+        self.button_previous.pack(side="left")
         
         self.button_next = ttk.Button(nav_frame, text="Next > (F10)", width=8, command=lambda: self.get_song(1))
         self.button_next.pack(side="left")
@@ -215,6 +212,10 @@ class JazlerEditor(Tk):
         footer_frame = Frame(self, bg=BG_DARK, pady=5)
         footer_frame.pack(side="bottom", fill="x")
         
+        # Filename Display
+        self.label_filename = Label(footer_frame, text="Filename", bg=BG_DARK, fg=FG_WHITE, font=("Segoe UI", 8))
+        self.label_filename.pack(side="bottom", fill="x", pady=(5, 0))
+
         # Status Labels
         font_status = ("Segoe UI", 10, "bold")
         self.lbl_stat_file = Label(footer_frame, text="File Status", bg=BG_DARK, fg=FG_WHITE, font=font_status)
@@ -228,8 +229,8 @@ class JazlerEditor(Tk):
 
         # Key Bindings
         self.bind("<F1>", lambda event: self.query_db())
-        self.bind("<F3>", lambda event: google_lookup(self.song))
-        self.bind("<F4>", lambda event: discogs_lookup(self.song))
+        self.bind("<F3>", lambda event: WebSearch.google_lookup(self.song))
+        self.bind("<F4>", lambda event: WebSearch.discogs_lookup(self.song))
         self.bind("<F5>", lambda event: self.save_song(False))
         self.bind("<F6>", lambda event: self.save_song(True))
         self.bind("<F9>", lambda event: self.get_song(-1))
@@ -243,8 +244,10 @@ class JazlerEditor(Tk):
         # Usage checks: toggle_controls(False), toggle_controls(True).
         # So state is boolean to enable (True) or disable (False).
         if state is True or state == "normal":
+            self.is_loading = False
             state_val = ["!disabled"]
         else:
+            self.is_loading = True
             state_val = ["disabled"]
             
         buttons = [
@@ -260,7 +263,7 @@ class JazlerEditor(Tk):
                 pass
 
     def query_execute(self, field_in, match, query):
-        save_last_query(field_in, match, query)
+        app_config.save_last_query(field_in, match, query)
         field_out = "fldArtistName"
         mapping = {
             "artist": "fldArtistName",
@@ -280,7 +283,7 @@ class JazlerEditor(Tk):
         return []
 
     def get_initial_query(self):
-        last_query = load_last_query()
+        last_query = app_config.load_last_query()
         if last_query:
             try:
                 print(f"Loading last query: {last_query}")
@@ -344,7 +347,7 @@ class JazlerEditor(Tk):
 
     def _update_status_indicators(self):
         # Genre Validation
-        test_genre = check_genre(self.song.genres_all, self.id3.genres_all)
+        test_genre = Song.check_genre(self.song.genres_all, self.id3.genres_all)
         bg_genre = "#3c3f41" if test_genre else "#662222"
         self.texts_db["genre"].config(bg=bg_genre)
         self.texts_id3["genre"].config(bg=bg_genre)
@@ -383,7 +386,7 @@ class JazlerEditor(Tk):
         clean_loc = (self.song.location_local + "    <--->    " + self.song.location_correct).replace("z:\\songs\\", "")
         self.label_filename.config(text=clean_loc)
         
-        bg_file = "DarkSeaGreen" if self.song.location_local.lower() == self.song.location_correct.lower() else "light salmon"
+        bg_file = "#28a745" if self.song.location_local.lower() == self.song.location_correct.lower() else "#dc3545"
         self.label_filename.config(bg=bg_file)
 
     def song_rename(self):
@@ -437,7 +440,7 @@ class JazlerEditor(Tk):
             self.id3.year = 0
 
         # Derived fields
-        self.song.decade = calc_decade(self.song.year)
+        self.song.decade = Song.calc_decade(self.song.year)
         self.song.genre_04_name = self.song.decade
         if self.song.year != 0:
             self.song.genre_04_id = self.reverse_decade_map.get(self.song.decade, 0)
@@ -478,7 +481,7 @@ class JazlerEditor(Tk):
         print(genre_ids)
         
         self.texts_db["genre"].delete(0, END)
-        self.song.genres_all = list_to_string(self.genre_map[0], genre_ids)
+        self.song.genres_all = Song.list_to_string(self.genre_map[0], genre_ids)
         self.texts_db["genre"].insert(0, self.song.genres_all)
         
         genre_ids = genre_ids[:3]
@@ -488,7 +491,7 @@ class JazlerEditor(Tk):
                 genre_id_check = False
                 break
                 
-        genre_test = check_genre(self.song.genres_all, self.id3.genres_all)
+        genre_test = Song.check_genre(self.song.genres_all, self.id3.genres_all)
         if not genre_test:
             messagebox.showwarning("Warning", "Genres not the same!")
             
@@ -496,18 +499,18 @@ class JazlerEditor(Tk):
         
         if genre_id_check:
             self.song.genre_01_name = genre_ids[0]
-            self.song.genre_01_id = get_genre_id(genre_ids[0], self.reverse_genre_map)
+            self.song.genre_01_id = Song.get_genre_id(genre_ids[0], self.reverse_genre_map)
             
             if len(genre_ids) > 1:
                 self.song.genre_02_name = genre_ids[1]
-                self.song.genre_02_id = get_genre_id(genre_ids[1], self.reverse_genre_map)
+                self.song.genre_02_id = Song.get_genre_id(genre_ids[1], self.reverse_genre_map)
             else:
                 self.song.genre_02_name = self.genre_map[0]
                 self.song.genre_02_id = 0
                 
             if len(genre_ids) > 2:
                 self.song.genre_03_name = genre_ids[2]
-                self.song.genre_03_id = get_genre_id(genre_ids[2], self.reverse_genre_map)
+                self.song.genre_03_id = Song.get_genre_id(genre_ids[2], self.reverse_genre_map)
             else:
                 self.song.genre_03_name = self.genre_map[0]
                 self.song.genre_03_id = 0
@@ -519,9 +522,9 @@ class JazlerEditor(Tk):
                 "fldYear": self.song.year,
                 "fldComposer": self.song.composer,
                 "fldLabel": self.song.publisher,
-                "fldCat1a": get_genre_id(self.song.genre_01_name, self.reverse_genre_map),
-                "fldCat1b": get_genre_id(self.song.genre_02_name, self.reverse_genre_map),
-                "fldCat1c": get_genre_id(self.song.genre_03_name, self.reverse_genre_map),
+                "fldCat1a": Song.get_genre_id(self.song.genre_01_name, self.reverse_genre_map),
+                "fldCat1b": Song.get_genre_id(self.song.genre_02_name, self.reverse_genre_map),
+                "fldCat1c": Song.get_genre_id(self.song.genre_03_name, self.reverse_genre_map),
                 "fldCDKey": self.song.isrc,
                 "fldCat2": self.song.genre_04_id,
                 "fldDuration": self.song.duration,
@@ -536,10 +539,10 @@ class JazlerEditor(Tk):
                 messagebox.showerror("Save Error", f"Could not save changes to database:\n{e}")
                 return
 
-            tag_write(self.id3, self.song.location_local)
+            AudioMetadata.tag_write(self.id3, self.song.location_local)
             
             # Check validation
-            if not check_genre(self.song.genres_all, self.id3.genres_all):
+            if not Song.check_genre(self.song.genres_all, self.id3.genres_all):
                 return
 
             # Next song
@@ -565,6 +568,9 @@ class JazlerEditor(Tk):
         self.update_fields()
 
     def get_song(self, delta):
+        if self.is_loading:
+            return
+
         if delta is None:
             delta = 0
             test = self.text_jump.get().strip()
@@ -591,7 +597,7 @@ class JazlerEditor(Tk):
     def _load_song_thread_job(self, pos):
         """Worker thread for loading song data."""
         try:
-            data = get_data(self.song_query[pos], self.genre_map, self.decade_map, self.tempo_map)
+            data = Song.from_db_record(self.song_query[pos], self.genre_map, self.decade_map, self.tempo_map)
             self.after(0, self._finish_load_song, data)
         except Exception as e:
             print(f"Error loading song: {e}")
@@ -685,20 +691,23 @@ def process_string_comparison(val1: Any, val2: Any) -> Tuple[str, str, str]:
     return val1, val2, bg_color
 
 
-def _clean_lookup_string(song):
-    s = song.artist + " " + song.title
-    s = s.replace(" ", "%20")
-    s = s.replace("-", "").replace("&", "").replace("#", "").replace("\\", "")
-    return s
+class WebSearch:
+    @staticmethod
+    def _clean_lookup_string(song):
+        s = song.artist + " " + song.title
+        s = s.replace(" ", "%20")
+        s = s.replace("-", "").replace("&", "").replace("#", "").replace("\\", "")
+        return s
 
-def discogs_lookup(song):
-    query = _clean_lookup_string(song)
-    webbrowser.open("https://www.discogs.com/search?q=" + query)
+    @staticmethod
+    def discogs_lookup(song):
+        query = WebSearch._clean_lookup_string(song)
+        webbrowser.open("https://www.discogs.com/search?q=" + query)
 
-
-def google_lookup(song):
-    query = _clean_lookup_string(song)
-    webbrowser.open("https://duckduckgo.com/?q=" + query)
+    @staticmethod
+    def google_lookup(song):
+        query = WebSearch._clean_lookup_string(song)
+        webbrowser.open("https://duckduckgo.com/?q=" + query)
 
 
 if __name__ == "__main__":
