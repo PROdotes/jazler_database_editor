@@ -14,11 +14,14 @@
         ],
         "no_genre_subfolder": [
             "pop"
+        ],
+        "standard_subfolder": [
+            "cro"
         ]
     },
     "last_query": {
         "field": "artist",
         "match": "contains",
-        "value": "ab"
+        "value": "pink"
     }
 }

@@ -3,7 +3,7 @@ import mutagen.id3
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from Song import SongID3
+    from src.models.song import SongID3
 
 class AudioMetadata:
     @staticmethod

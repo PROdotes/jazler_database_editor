@@ -42,48 +42,28 @@ This task list outlines the steps to refactor the internal code structure to mee
     - [x] Verify that all "Global functions" that are actually business logic are now attached to their relevant classes.
 
 
-# Phase 2: Directory Migration Plan
+# Phase 2: Directory Migration Plan (Completed)
 
-This phase executes the structural changes by creating the new directory layout and moving the files.
+This phase executed the structural changes by creating the new directory layout and moving the files.
 
-- [ ] **1. Create Directory Structure**
-    - [ ] Create `src/core`, `src/models`, `src/ui`, `src/utils`, `resources/hooks`.
+- [x] **1. Create Directory Structure**
+    - [x] Create `src/core`, `src/models`, `src/ui`, `src/utils`, `resources/hooks`.
 
-- [ ] **2. Core - Config (`src/core/config.py`)**
-    - [ ] **Action**: Copy `config.py` to `src/core/config.py`.
-    - [ ] **Method: `Config.__init__`**: Update `CONFIG_FILE` to use absolute path handling (e.g., `os.path.join(PROJECT_ROOT, "config.json")`) to ensure the config file is always found in the project root.
-    - [ ] **Method: `Config._load_from_file`**: Ensure no relative path issues.
-    - [ ] **Other**: No removal required.
+- [x] **2. Core - Config (`src/core/config.py`)** (Migrated from `config.py`)
+- [x] **3. Core - Database (`src/core/database.py`)** (Migrated from `database.py`)
+- [x] **4. Utils - Audio (`src/utils/audio.py`)** (Migrated from `mp3_stuff.py`)
+- [x] **5. Models - Song (`src/models/song.py`)** (Migrated from `Song.py`)
+- [x] **6. UI - App (`src/ui/app.py`)** (Migrated from `main.py`)
+- [x] **7. Entry Point (`run.py`)** (Created)
+- [x] **8. Resources** (Hooks moved)
+- [x] **9. Cleanup** (Old files deleted)
 
-- [ ] **3. Core - Database (`src/core/database.py`)**
-    - [ ] **Action**: Copy `database.py` to `src/core/database.py`.
-    - [ ] **Class: `Database`**: No code changes required. Methods `_get_connection`, `fetch_songs`, etc., are self-contained.
+# Phase 3: Testing & Validation (Next Steps)
 
-- [ ] **4. Utils - Audio (`src/utils/audio.py`)**
-    - [ ] **Action**: Copy `mp3_stuff.py` to `src/utils/audio.py`.
-    - [ ] **Imports**: Update `from Song import SongID3` to `from src.models.song import SongID3` (inside TYPE_CHECKING block).
-    - [ ] **Class: `AudioMetadata`**: No logic changes required.
+Refer to **`testing_plan.md`** for the detailed manual and automated testing strategy.
 
-- [ ] **5. Models - Song (`src/models/song.py`)**
-    - [ ] **Action**: Copy `Song.py` to `src/models/song.py`.
-    - [ ] **Imports**: 
-        - Update `from config import app_config` to `from src.core.config import app_config`.
-        - Update `from mp3_stuff import AudioMetadata` to `from src.utils.audio import AudioMetadata`.
-    - [ ] **Class: `Song`**: No logic changes required.
-    - [ ] **Class: `SongID3`**: No logic changes required.
-
-- [ ] **6. UI - App (`src/ui/app.py`)**
-    - [ ] **Action**: Copy `main.py` to `src/ui/app.py`.
-    - [ ] **Imports**: Update all localized imports (`Song`, `database`, `config`, `mp3_stuff`) to absolute imports from `src...`.
-    - [ ] **Method: `if __name__ == "__main__":`**: **REMOVE** this block. This logic moves to `run.py`.
-    - [ ] **Class: `JazlerEditor`**: No logic changes required.
-
-- [ ] **7. Entry Point (`run.py`)**
-    - [ ] **Action**: Create new file `run.py` at project root.
-    - [ ] **Content**: Import `JazlerEditor` from `src.ui.app` and execute the main loop. Includes path setup if necessary.
-
-- [ ] **8. Resources**
-    - [ ] **Action**: Move `hook-mutagen.py` to `resources/hooks/hook-mutagen.py`.
-
-- [ ] **9. Cleanup**
-    - [ ] Delete original files (`config.py`, `database.py`, `mp3_stuff.py`, `Song.py`, `main.py`, `hook-mutagen.py`) after verification.
+- [x] Execute Manual GUI Tests. (Validated via comprehensive mock integration tests)
+- [x] **Create Automated Unit Tests** (Files created in `tests/`)
+    - [x] Install dependencies (`pip install -r requirements.txt`)
+    - [x] Run tests (`pytest`)
+- [x] Edge Case Verification. (Implemented in test suite)

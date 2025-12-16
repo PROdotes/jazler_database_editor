@@ -2,7 +2,9 @@ import json
 from os import path
 from typing import Dict, Any, Optional
 
-CONFIG_FILE = "config.json"
+# Robustly find project root: src/core/config.py -> src/core -> src -> root
+BASE_DIR = path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
+CONFIG_FILE = path.join(BASE_DIR, "config.json")
 
 DEFAULT_CONFIG = {
     "db_path_live": r"\\ONAIR\Jazler RadioStar 2\Databases\JZRS2DB-V5.accdb",
@@ -16,7 +18,8 @@ DEFAULT_CONFIG = {
             "religijske": "z:\\songs\\religiozne\\"
         },
         "no_year_subfolder": ["rock"],
-        "no_genre_subfolder": ["pop"]
+        "no_genre_subfolder": ["pop"],
+        "standard_subfolder": []
     }
 }
 
