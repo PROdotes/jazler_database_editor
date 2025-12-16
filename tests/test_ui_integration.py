@@ -82,6 +82,7 @@ def app(mock_tk, mock_app_deps):
          patch.object(JazlerEditor, 'deiconify'), \
          patch.object(JazlerEditor, 'withdraw'), \
          patch.object(JazlerEditor, 'after_idle'), \
+         patch.object(JazlerEditor, 'protocol'), \
          patch.object(JazlerEditor, '_load_song_thread_job'):
         
         app = JazlerEditor()
@@ -108,6 +109,11 @@ def app(mock_tk, mock_app_deps):
         app.button_query = MagicMock()
         app.button_save = MagicMock()
         app.button_rename = MagicMock()
+        
+        # Done Status Label Mock
+        app.lbl_done_status = MagicMock()
+        
+        # UI State helpers override
         app.button_google = MagicMock()
         app.button_discog = MagicMock()
         

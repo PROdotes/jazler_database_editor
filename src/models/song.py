@@ -88,8 +88,18 @@ class Song:
                 id3_error = "ID3 error"
                 tag = {}
                 
-            id3 = SongID3(tag.get("TPE1"), tag.get("TIT2"), tag.get("TCOM"), tag.get("TALB"), tag.get("TDRC"),
-                          tag.get("TCON"), tag.get("TPUB"), tag.get("TSRC"), tag.get("TLEN"), id3_error)
+            # Fallback for Year: TDRC (Recording Time) preferred, TYER (Year) fallback for ID3v2.3
+            year_tag = tag.get("TDRC")
+            if year_tag is None:
+                year_tag = tag.get("TYER")
+                
+            # Fallback for Key/Done: TKEY1 preferred, TKEY as fallback
+            key_tag = tag.get("TKEY1")
+            if key_tag is None:
+                key_tag = tag.get("TKEY")
+                
+            id3 = SongID3(tag.get("TPE1"), tag.get("TIT2"), tag.get("TCOM"), tag.get("TALB"), year_tag,
+                          tag.get("TCON"), tag.get("TPUB"), tag.get("TSRC"), tag.get("TLEN"), key_tag, id3_error)
             
             if id3.duration == "" or id3.duration is None:
                 id3.duration = AudioMetadata.song_length(song.location_local)
@@ -168,7 +178,7 @@ class Song:
 
 
 class SongID3:
-    def __init__(self, artist: str, title: str, composer: str, album: str, year: Optional[int], genres: str, publisher: str, isrc: str, duration: float, error: str):
+    def __init__(self, artist: str, title: str, composer: str, album: str, year: Optional[int], genres: str, publisher: str, isrc: str, duration: float, key: str, error: str):
         self.artist = artist
         self.title = title
         self.composer = composer
@@ -187,6 +197,10 @@ class SongID3:
         self.publisher = publisher
         self.isrc = isrc
         self.duration = duration
+        # Store key raw or logical? Java stores "true"/"false" string in DB/ID3?
+        # Java checkDone.setSelected(id3Data.getData(ID3Header.KEY).equals("true"));
+        # So it expects the string "true".
+        self.done = str(key).lower() == "true"
         self.error = error
         if self.error == "":
             self.error = "No error"

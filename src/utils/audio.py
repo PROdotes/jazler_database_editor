@@ -43,4 +43,10 @@ class AudioMetadata:
         tag.tags["TLEN"] = mutagen.id3.TLEN(encoding=3, text=[duration_val])
         if id3_data.isrc != "":
             tag.tags["TSRC"] = mutagen.id3.TSRC(encoding=3, text=[id3_data.isrc])
+        
+        # Write 'Done' status (KEY)
+        # Convert boolean to "true"/"false" string to match Java app convention
+        done_str = "true" if getattr(id3_data, "done", False) else "false"
+        tag.tags["TKEY"] = mutagen.id3.TKEY(encoding=3, text=[done_str])
+        
         tag.save(v2_version=3)

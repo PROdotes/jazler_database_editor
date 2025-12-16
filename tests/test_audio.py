@@ -30,7 +30,7 @@ def test_tag_write(mock_mp3):
     mock_file.tags = {} 
     
     # Dummy ID3 data
-    id3 = SongID3("Artist", "Title", "Composer", "Album", 2020, "Pop", "Pub", "US123", 180, "")
+    id3 = SongID3("Artist", "Title", "Composer", "Album", 2020, "Pop", "Pub", "US123", 180, "true", "")
     
     AudioMetadata.tag_write(id3, "test.mp3")
     
@@ -50,7 +50,12 @@ def test_tag_write(mock_mp3):
     
     # Mutagen objects store text in .text (list)
     assert tpe1.text == ["Artist"]
+    assert tpe1.text == ["Artist"]
     assert tit2.text == ["Title"]
+    
+    # Verify done status (TKEY)
+    assert "TKEY" in mock_file.tags
+    assert mock_file.tags["TKEY"].text == ["true"]
 
     # Verify save called
     mock_file.save.assert_called_with(v2_version=3)
@@ -74,7 +79,7 @@ def test_tag_write_error(mock_mp3):
     """Test error when writing tags."""
     mock_mp3.side_effect = MutagenError("Write failed")
     
-    id3 = SongID3("Artist", "Title", "Composer", "Album", 2020, "Pop", "Pub", "US123", 180, "")
+    id3 = SongID3("Artist", "Title", "Composer", "Album", 2020, "Pop", "Pub", "US123", 180, "", "")
     
     # Code catches exception and prints it? Or raises?
     # "except Exception as e: print(e)"
@@ -93,7 +98,7 @@ def test_tag_write_invalid_duration(mock_mp3):
     mock_file.tags = {} 
     
     # ID3 with invalid duration
-    id3 = SongID3("A", "T", "C", "A", 2020, "P", "Pub", "I", "NotANumber", "")
+    id3 = SongID3("A", "T", "C", "A", 2020, "P", "Pub", "I", "NotANumber", "", "")
     
     AudioMetadata.tag_write(id3, "test.mp3")
     

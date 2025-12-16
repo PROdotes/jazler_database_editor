@@ -5,7 +5,7 @@ import webbrowser
 from typing import Any, Tuple
 from os import makedirs
 from os import path
-from tkinter import Tk, Toplevel, Label, Button, Entry, END, messagebox, ttk, Frame
+from tkinter import Tk, Toplevel, Label, Button, Entry, END, messagebox, ttk, Frame, Checkbutton, BooleanVar
 from tkinter.ttk import Combobox
 
 # Updated Imports for New Structure
@@ -37,8 +37,22 @@ class JazlerEditor(Tk):
         self.song = None
         self.id3 = None
         self.song_query = self.get_initial_query()
-        self.position = 0
+        # Load saved position
+        last_query_data = app_config.load_last_query()
+        if last_query_data and "position" in last_query_data:
+            try:
+                saved_pos = int(last_query_data["position"])
+                if 0 <= saved_pos < len(self.song_query):
+                    self.position = saved_pos
+            except ValueError:
+                self.position = 0
+        else:
+            self.position = 0
+
         self.is_loading = False
+        
+        # Handle Window Close
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # UI Initialization
         self.setup_ui()
@@ -69,6 +83,13 @@ class JazlerEditor(Tk):
             root.withdraw()
             messagebox.showerror("Connection Error", f"Could not connect to Database at:\n{self.file}\n\nError: {e}")
             sys.exit(1)
+
+    def on_closing(self):
+        try:
+            app_config.save_last_position(self.position)
+        except Exception as e:
+            print(f"Error saving state: {e}")
+        self.destroy()
 
     def setup_ui(self):
         self.deiconify()
@@ -168,6 +189,10 @@ class JazlerEditor(Tk):
 
             row_count += 1
 
+        # Status Label for Done (Added to ID3 column)
+        self.lbl_done_status = Label(main_frame, text="[ NOT DONE ]", bg=BG_DARK, fg="#6c757d", font=("Segoe UI", 10, "bold"))
+        self.lbl_done_status.grid(row=row_count, column=3, sticky="w", padx=2, pady=5)
+
         # 4. Control Bar
         control_frame = Frame(self, bg="#1e1e1e", pady=10, padx=20) # Slightly darker for visual anchor
         control_frame.pack(fill="x", side="bottom")
@@ -260,8 +285,9 @@ class JazlerEditor(Tk):
             except:
                 pass
 
-    def query_execute(self, field_in, match, query):
-        app_config.save_last_query(field_in, match, query)
+    def query_execute(self, field_in, match, query, save=True):
+        if save:
+            app_config.save_last_query(field_in, match, query)
         field_out = "fldArtistName"
         mapping = {
             "artist": "fldArtistName",
@@ -285,7 +311,7 @@ class JazlerEditor(Tk):
         if last_query:
             try:
                 print(f"Loading last query: {last_query}")
-                return self.query_execute(last_query["field"], last_query["match"], last_query["value"])
+                return self.query_execute(last_query["field"], last_query["match"], last_query["value"], save=False)
             except Exception as e:
                 print(f"Error executing last query: {e}")
                 
@@ -300,7 +326,7 @@ class JazlerEditor(Tk):
                 self.get_song(0)
                 return
             else:
-                self.id3 = SongID3("", "", "", "", "0", "", "", "", "0", "FILE NOT FOUND")
+                self.id3 = SongID3("", "", "", "", "0", "", "", "", "0", "false", "FILE NOT FOUND")
 
         self.texts_db["artist"].config(state="normal")
         self._update_text_field("artist", self.song.artist, self.id3.artist)
@@ -326,6 +352,12 @@ class JazlerEditor(Tk):
         self._update_text_field("duration", self.song.duration, self.song.duration)
         self.texts_db["duration"].config(state="disabled")
         self.texts_id3["duration"].config(state="disabled")
+
+        # Done Status Check
+        if getattr(self.id3, "done", False):
+             self.lbl_done_status.config(text="✔ DONE", fg="#28a745")
+        else:
+             self.lbl_done_status.config(text="[ NOT DONE ]", fg="#6c757d")
 
         self._update_status_indicators()
 

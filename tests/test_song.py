@@ -138,16 +138,39 @@ def test_song_from_db_record_id3_error(mock_isfile, mock_audio, genre_map, decad
 
 # -- ID3 Specific Edge Cases --
 
+@patch('src.models.song.AudioMetadata')
+@patch('src.models.song.path.isfile')
+def test_song_from_db_record_done_fallback(mock_isfile, mock_audio, genre_map, decade_map, tempo_map):
+    """Test TKEY fallback if TKEY1 is missing."""
+    mock_isfile.return_value = True
+    mock_audio.song_length.return_value = 180.0
+    
+    # CASE 1: TKEY1 present
+    mock_audio.get_tag.return_value = {"TKEY1": "true"}
+    record = create_dummy_db_record()
+    _, id3_1 = Song.from_db_record(record, genre_map, decade_map, tempo_map)
+    assert id3_1.done is True
+    
+    # CASE 2: TKEY1 missing, TKEY present
+    mock_audio.get_tag.return_value = {"TKEY": "true"}
+    _, id3_2 = Song.from_db_record(record, genre_map, decade_map, tempo_map)
+    assert id3_2.done is True
+    
+    # CASE 3: Both missing
+    mock_audio.get_tag.return_value = {}
+    _, id3_3 = Song.from_db_record(record, genre_map, decade_map, tempo_map)
+    assert id3_3.done is False
+
 def test_song_id3_invalid_year():
     """Test parsing invalid year in ID3."""
-    id3 = SongID3("A", "T", "C", "A", "NotAYear", "G", "P", "I", 100, "")
+    id3 = SongID3("A", "T", "C", "A", "NotAYear", "G", "P", "I", 100, "", "")
     assert id3.year == 0
     
-    id3_partial = SongID3("A", "T", "C", "A", "2020-05-01", "G", "P", "I", 100, "")
+    id3_partial = SongID3("A", "T", "C", "A", "2020-05-01", "G", "P", "I", 100, "", "")
     assert id3_partial.year == 2020
 
 def test_song_id3_repr():
-    id3 = SongID3("Artist", "Title", "C", "A", 2000, "G", "P", "I", 100, "")
+    id3 = SongID3("Artist", "Title", "C", "A", 2000, "G", "P", "I", 100, "", "")
     assert "<SongID3 artist='Artist'" in repr(id3)
 
 # -- Static Methods --

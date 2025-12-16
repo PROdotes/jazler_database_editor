@@ -7,21 +7,51 @@
     "genre_rules": {
         "path_overrides": {
             "domoljubne": "z:\\songs\\cro\\domoljubne\\",
-            "religijske": "z:\\songs\\religiozne\\"
+            "religijske": "z:\\songs\\religiozne\\",
+            "acoustic": "z:\\songs\\akustika\\",
+            "club": "z:\\songs\\clubbing\\"
         },
         "no_year_subfolder": [
-            "rock"
+            "rock",
+            "religiozne",
+            "oldies",
+            "x-mas",
+            "country",
+            "slow",
+            "metal",
+            "navijacke",
+            "jazz",
+            "dance",
+            "trance",
+            "electronic",
+            "acoustic",
+            "funk",
+            "blues",
+            "reggae",
+            "akustika",
+            "club",
+            "clubbing"
         ],
         "no_genre_subfolder": [
             "pop"
         ],
         "standard_subfolder": [
-            "cro"
+            "cro",
+            "zabavne",
+            "cro zabavne",
+            "instrumental",
+            "kuruza",
+            "xxx",
+            "klape",
+            "italian",
+            "susjedi",
+            "world music"
         ]
     },
     "last_query": {
         "field": "artist",
         "match": "contains",
-        "value": "pink"
+        "value": "pink",
+        "position": 7
     }
 }

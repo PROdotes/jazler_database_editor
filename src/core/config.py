@@ -55,13 +55,25 @@ class Config:
             current_config["last_query"] = {
                 "field": field,
                 "match": match,
-                "value": value
+                "value": value,
+                "position": 0  # Reset position on new query
             }
             with open(CONFIG_FILE, 'w') as f:
                 json.dump(current_config, f, indent=4)
             self._data = current_config
         except Exception as e:
             print(f"Error saving last query: {e}")
+
+    def save_last_position(self, position: int):
+        try:
+            current_config = self._load_from_file()
+            if "last_query" in current_config:
+                current_config["last_query"]["position"] = position
+                with open(CONFIG_FILE, 'w') as f:
+                    json.dump(current_config, f, indent=4)
+                self._data = current_config
+        except Exception as e:
+            print(f"Error saving position: {e}")
 
     def load_last_query(self) -> Optional[Dict[str, str]]:
         # Always read fresh for query load just in case
