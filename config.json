@@ -52,6 +52,6 @@
         "field": "artist",
         "match": "contains",
         "value": "",
-        "position": 54621
+        "position": 54614
     }
 }
