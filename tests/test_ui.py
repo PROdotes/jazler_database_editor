@@ -28,6 +28,54 @@ def test_process_string_comparison():
     v1, v2, color = process_string_comparison("Abba", "AC/DC", required=False)
     assert color == "#662222" # Still mismatch
 
+def test_process_string_comparison_artist():
+    """Test string comparison logic specifically for artist field with startswith."""
+    
+    # Artist: Exact match
+    v1, v2, color = process_string_comparison("The Beatles", "The Beatles", is_artist=True)
+    assert v1 == "The Beatles"
+    assert v2 == "The Beatles"
+    assert color == "#3c3f41" # Match
+    
+    # Artist: ID3 starts with DB value (truncated in database)
+    v1, v2, color = process_string_comparison("The Beatles", "The Beatles feat. Special Guest", is_artist=True)
+    assert v1 == "The Beatles"
+    assert v2 == "The Beatles feat. Special Guest"
+    assert color == "#3c3f41" # Should match because ID3 starts with DB value
+    
+    # Artist: ID3 does NOT start with DB value
+    v1, v2, color = process_string_comparison("The Beatles", "AC/DC", is_artist=True)
+    assert color == "#662222" # Mismatch
+    
+    # Artist: DB value is substring but not at start
+    v1, v2, color = process_string_comparison("Beatles", "The Beatles", is_artist=True)
+    assert color == "#662222" # Mismatch - doesn't start with "Beatles"
+    
+    # Artist: Empty DB value (required)
+    v1, v2, color = process_string_comparison("", "Some Artist", is_artist=True, required=True)
+    assert color == "#662222" # Required but empty
+    
+    # Artist: Empty ID3 value
+    v1, v2, color = process_string_comparison("The Beatles", "", is_artist=True)
+    assert color == "#662222" # Mismatch - empty string doesn't start with "The Beatles"
+    
+    # Artist: Both empty (required)
+    v1, v2, color = process_string_comparison("", "", is_artist=True, required=True)
+    assert color == "#662222" # Required but empty
+    
+    # Artist: Both empty (not required)
+    v1, v2, color = process_string_comparison("", "", is_artist=True, required=False)
+    assert color == "#3c3f41" # OK because not required
+    
+    # Artist: Case sensitivity check
+    v1, v2, color = process_string_comparison("the beatles", "The Beatles", is_artist=True)
+    assert color == "#662222" # Case sensitive - doesn't start with lowercase
+    
+    # Artist: Partial match at start
+    v1, v2, color = process_string_comparison("Led Zeppelin", "Led Zeppelin IV", is_artist=True)
+    assert color == "#3c3f41" # Match - starts with DB value
+
+
 @patch('src.ui.app.webbrowser')
 def test_web_search(mock_browser):
     """Test web search URL generation."""

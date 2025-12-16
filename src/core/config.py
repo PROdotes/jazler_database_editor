@@ -1,9 +1,18 @@
 import json
+import sys
 from os import path
 from typing import Dict, Any, Optional
 
-# Robustly find project root: src/core/config.py -> src/core -> src -> root
-BASE_DIR = path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
+# Determine base directory for config file
+# When running as PyInstaller EXE, use the directory containing the EXE
+# When running as script, use the project root
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable
+    BASE_DIR = path.dirname(sys.executable)
+else:
+    # Running as script: src/core/config.py -> src/core -> src -> root
+    BASE_DIR = path.dirname(path.dirname(path.dirname(path.abspath(__file__))))
+
 CONFIG_FILE = path.join(BASE_DIR, "config.json")
 
 DEFAULT_CONFIG = {
@@ -67,11 +76,22 @@ class Config:
     def save_last_position(self, position: int):
         try:
             current_config = self._load_from_file()
-            if "last_query" in current_config:
+            
+            # Create last_query if it doesn't exist
+            if "last_query" not in current_config:
+                current_config["last_query"] = {
+                    "field": "artist",
+                    "match": "contains",
+                    "value": "",
+                    "position": position
+                }
+            else:
+                # Update existing position
                 current_config["last_query"]["position"] = position
-                with open(CONFIG_FILE, 'w') as f:
-                    json.dump(current_config, f, indent=4)
-                self._data = current_config
+            
+            with open(CONFIG_FILE, 'w') as f:
+                json.dump(current_config, f, indent=4)
+            self._data = current_config
         except Exception as e:
             print(f"Error saving position: {e}")
 

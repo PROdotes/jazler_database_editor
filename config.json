@@ -51,7 +51,7 @@
     "last_query": {
         "field": "artist",
         "match": "contains",
-        "value": "pink",
-        "position": 7
+        "value": "",
+        "position": 54621
     }
 }

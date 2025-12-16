@@ -42,9 +42,16 @@ class JazlerEditor(Tk):
         if last_query_data and "position" in last_query_data:
             try:
                 saved_pos = int(last_query_data["position"])
-                if 0 <= saved_pos < len(self.song_query):
+                # Clamp position to valid range
+                if saved_pos < 0:
+                    self.position = 0
+                elif saved_pos >= len(self.song_query):
+                    # If saved position is beyond current query, go to last song
+                    self.position = max(0, len(self.song_query) - 1)
+                else:
                     self.position = saved_pos
-            except ValueError:
+            except (ValueError, TypeError) as e:
+                print(f"Error loading position: {e}")
                 self.position = 0
         else:
             self.position = 0
@@ -59,21 +66,81 @@ class JazlerEditor(Tk):
         
         # Load first song
         if self.song_query:
-            self.get_song(0)
+            # Load song at saved position (or 0 if no saved position)
+            self.get_song(0)  # Delta of 0 means stay at current position
         else:
             messagebox.showinfo("Info", "No songs found for initial query.")
 
     def ask_database_mode(self):
-        start_root = Tk()
+        """Ask user which database to use. Defaults to Test (safer option)."""
+        start_root = Toplevel()
         start_root.withdraw()
+        start_root.title("Select Database")
+        start_root.configure(bg="#2b2b2b")
+        start_root.resizable(False, False)
+        
+        # Center the window
+        window_width = 400
+        window_height = 180
+        screen_width = start_root.winfo_screenwidth()
+        screen_height = start_root.winfo_screenheight()
+        x = (screen_width - window_width) // 2
+        y = (screen_height - window_height) // 2
+        start_root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        result = {"use_live": False}  # Default to Test database
+        
+        def select_live():
+            result["use_live"] = True
+            start_root.destroy()
+        
+        def select_test():
+            result["use_live"] = False
+            start_root.destroy()
+        
+        # Message
+        msg_frame = Frame(start_root, bg="#2b2b2b", pady=20)
+        msg_frame.pack(fill="both", expand=True)
+        
+        Label(msg_frame, text="Select Database Mode", 
+              bg="#2b2b2b", fg="white", 
+              font=("Segoe UI", 12, "bold")).pack(pady=(10, 5))
+        
+        Label(msg_frame, text="Which database do you want to use?", 
+              bg="#2b2b2b", fg="#cccccc", 
+              font=("Segoe UI", 9)).pack(pady=5)
+        
+        # Buttons
+        btn_frame = Frame(start_root, bg="#2b2b2b", pady=10)
+        btn_frame.pack(fill="x")
+        
+        # Test button (default - left position, will be focused)
+        btn_test = Button(btn_frame, text="Test Database\n(Databases - Copy)", 
+                         command=select_test, width=18, height=3,
+                         bg="#28a745", fg="white", font=("Segoe UI", 10, "bold"),
+                         relief="raised", bd=3, cursor="hand2")
+        btn_test.pack(side="left", padx=(40, 10))
+        
+        # Live button (right position)
+        btn_live = Button(btn_frame, text="⚠️ LIVE Database ⚠️\n(Databases)", 
+                         command=select_live, width=18, height=3,
+                         bg="#dc3545", fg="white", font=("Segoe UI", 10, "bold"),
+                         relief="raised", bd=3, cursor="hand2")
+        btn_live.pack(side="left", padx=(10, 40))
+        
+        # Make window modal and on top
+        start_root.deiconify()
         start_root.attributes('-topmost', True)
-        use_live = messagebox.askyesno(
-            "Select Database", 
-            "Do you want to use the LIVE database?\n\nYES: Live (Databases)\nNO: Test (Databases - Copy)", 
-            parent=start_root
-        )
-        start_root.destroy()
-        return use_live
+        start_root.focus_force()
+        btn_test.focus_set()  # Focus on Test button (default)
+        
+        # Bind Enter to Test (default) and handle window close
+        start_root.bind("<Return>", lambda e: select_test())
+        start_root.bind("<Escape>", lambda e: select_test())
+        start_root.protocol("WM_DELETE_WINDOW", select_test)
+        
+        start_root.wait_window()
+        return result["use_live"]
 
     def connect_database(self):
         try:
@@ -368,8 +435,11 @@ class JazlerEditor(Tk):
         # Determine if field is optional
         optional_fields = ["album", "composer", "publisher", "isrc", "year"] 
         is_required = field not in optional_fields
+        
+        # Special handling for artist field (database has limited length)
+        is_artist = field == "artist"
             
-        val1, val2, color = process_string_comparison(val_song, val_id3, required=is_required)
+        val1, val2, color = process_string_comparison(val_song, val_id3, required=is_required, is_artist=is_artist)
         
         txt_db.delete(0, END)
         txt_db.insert(0, val1)
@@ -486,12 +556,20 @@ class JazlerEditor(Tk):
                     messagebox.showwarning("Warning", f"'{attr}' not set!")
                     return False
                 # Original code logic: compare song vs id3
-                val_song = getattr(self.song, attr)
-                val_id3 = getattr(self.id3, attr)
-                # Ensure types match for comparison
-                if str(val_song) != str(val_id3):
-                    messagebox.showwarning("Warning", f"'{attr}' not the same!")
-                    return False
+                val_song = str(getattr(self.song, attr))
+                val_id3 = str(getattr(self.id3, attr))
+                
+                # Special handling for artist - check if ID3 starts with DB value
+                if attr == 'artist':
+                    if val_song and not val_id3.startswith(val_song):
+                        messagebox.showwarning("Warning", f"'{attr}' not the same!")
+                        return False
+                else:
+                    # Standard exact match for other fields
+                    if val_song != val_id3:
+                        messagebox.showwarning("Warning", f"'{attr}' not the same!")
+                        return False
+                        
                 if not self.song.isrc == self.id3.isrc:
                     return False
             return True
@@ -717,9 +795,10 @@ def copy_text(text_1, text_2, end):
     text_2.config(bg="#3c3f41")
 
 
-def process_string_comparison(val1: Any, val2: Any, required: bool = True) -> Tuple[str, str, str]:
+def process_string_comparison(val1: Any, val2: Any, required: bool = True, is_artist: bool = False) -> Tuple[str, str, str]:
     """
     Cleans up two values and determines if they match.
+    For artist field, checks if ID3 tag (val2) starts with database value (val1).
     Returns: (clean_val1, clean_val2, bg_color_name)
     """
     if val1 == "-" or val1 is None:
@@ -732,10 +811,18 @@ def process_string_comparison(val1: Any, val2: Any, required: bool = True) -> Tu
     
     bg_color = "#3c3f41" # Dark Input BG
     
-    if val1 != val2:
-        bg_color = "#662222" # Mismatch
-    elif required and val1 == "":
-        bg_color = "#662222" # Required but empty
+    # Special handling for artist field - check if ID3 starts with DB value
+    if is_artist:
+        if val1 and not val2.startswith(val1):
+            bg_color = "#662222" # Mismatch
+        elif required and val1 == "":
+            bg_color = "#662222" # Required but empty
+    else:
+        # Standard exact match comparison
+        if val1 != val2:
+            bg_color = "#662222" # Mismatch
+        elif required and val1 == "":
+            bg_color = "#662222" # Required but empty
         
     return val1, val2, bg_color
 
