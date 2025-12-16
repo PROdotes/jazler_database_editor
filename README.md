@@ -1,6 +1,6 @@
-# Jazler Database Editor
+# MS Access Database Editor
 
-A modern Python application for managing and editing Jazler RadioStar database entries with ID3 tag synchronization.
+A modern Python application for managing and editing MS Access database entries with ID3 tag synchronization.
 
 ![Application Screenshot](screenshots/app_main_window.png)
 
@@ -20,15 +20,15 @@ A modern Python application for managing and editing Jazler RadioStar database e
 ### Prerequisites
 
 - Python 3.10+
-- Access to Jazler RadioStar database (`.accdb` file)
+- Access to MS Access database (`.accdb` file)
 - Windows OS (for database connectivity)
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/PROdotes/jazler_database_editor.git
-cd jazler_database_editor
+git clone https://github.com/PROdotes/ms_database_sync_app.git
+cd ms_database_sync_app
 ```
 
 2. Install dependencies:
@@ -47,7 +47,7 @@ python run.py
 build_exe.bat
 ```
 
-The executable will be created in `dist\JazlerEditor.exe`
+The executable will be created in `dist\DatabaseEditor.exe`
 
 ## Configuration
 
@@ -107,7 +107,7 @@ Exact match required for title, album, composer, publisher, year, ISRC.
 ## Project Structure
 
 ```
-jazler_database_editor/
+ms_database_sync_app/
 ├── src/
 │   ├── core/           # Database and config management
 │   ├── models/         # Data models (Song, SongID3)
@@ -171,7 +171,7 @@ Configurable rules for:
 
 ## Acknowledgments
 
-- Built for Jazler RadioStar database management
+- Built for MS Access database management
 - Uses mutagen for ID3 tag handling
 - Modern UI with tkinter/ttk
 

@@ -1,5 +1,5 @@
-from src.ui.app import JazlerEditor
+from src.ui.app import DatabaseEditor
 
 if __name__ == "__main__":
-    app = JazlerEditor()
+    app = DatabaseEditor()
     app.mainloop()

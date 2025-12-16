@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.ui.app import JazlerEditor
+from src.ui.app import DatabaseEditor
 
 
 def test_ask_database_mode_defaults_to_test():
@@ -15,10 +15,10 @@ def test_ask_database_mode_defaults_to_test():
         mock_window = MagicMock()
         MockToplevel.return_value = mock_window
         
-        # Create a minimal JazlerEditor instance just to test ask_database_mode
+        # Create a minimal DatabaseEditor instance just to test ask_database_mode
         # We need to avoid full initialization
         with patch('tkinter.Tk.__init__', return_value=None):
-            app = object.__new__(JazlerEditor)
+            app = object.__new__(DatabaseEditor)
             
             # Simulate closing the window without clicking (should default to Test)
             def simulate_close(*args, **kwargs):
@@ -61,7 +61,7 @@ def test_ask_database_mode_live_selection():
         MockButton.side_effect = capture_button
         
         with patch('tkinter.Tk.__init__', return_value=None):
-            app = object.__new__(JazlerEditor)
+            app = object.__new__(DatabaseEditor)
             
             # Simulate clicking Live button
             def simulate_live_click(*args, **kwargs):
@@ -102,7 +102,7 @@ def test_ask_database_mode_test_selection():
         MockButton.side_effect = capture_button
         
         with patch('tkinter.Tk.__init__', return_value=None):
-            app = object.__new__(JazlerEditor)
+            app = object.__new__(DatabaseEditor)
             
             # Simulate clicking Test button
             def simulate_test_click(*args, **kwargs):

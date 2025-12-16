@@ -9,7 +9,7 @@ def test_config_location_logic_when_frozen():
     
     # Simulate the logic from config.py
     with patch.object(sys, 'frozen', True, create=True), \
-         patch.object(sys, 'executable', r'C:\Program Files\JazlerEditor\JazlerEditor.exe'):
+         patch.object(sys, 'executable', r'C:\Program Files\DatabaseEditor\DatabaseEditor.exe'):
         
         # Replicate the BASE_DIR logic from config.py
         if getattr(sys, 'frozen', False):
@@ -20,8 +20,8 @@ def test_config_location_logic_when_frozen():
         config_file = os.path.join(base_dir, "config.json")
         
         # Verify the paths are correct
-        assert base_dir == r'C:\Program Files\JazlerEditor'
-        assert config_file == r'C:\Program Files\JazlerEditor\config.json'
+        assert base_dir == r'C:\Program Files\DatabaseEditor'
+        assert config_file == r'C:\Program Files\DatabaseEditor\config.json'
 
 
 def test_config_location_logic_when_not_frozen():

@@ -1,8 +1,8 @@
-# Code Refactoring Plan - Jazler Database Editor
+# Code Refactoring Plan - MS Access Database Editor
 
-## Executive Summary
+## Overview
 
-This document outlines a comprehensive refactoring plan for the Jazler Database Editor codebase. The analysis is based on clean code principles, SOLID principles, and industry best practices.
+This document outlines a comprehensive refactoring plan for the MS Access Database Editor codebase. The analysis is based on clean code principles, SOLID principles, and industry best practices.
 
 **Current State:** The application is functional with 67 passing tests and good separation of concerns.
 
@@ -15,8 +15,8 @@ This document outlines a comprehensive refactoring plan for the Jazler Database 
 
 ## 1. Architecture & Design Issues
 
-### 🔴 1.1 God Class Anti-Pattern - `JazlerEditor`
-**Issue:** The `JazlerEditor` class has 847 lines and 26 methods, violating Single Responsibility Principle.
+### 🔴 1.1 God Class Anti-Pattern - `DatabaseEditor`
+**Issue:** The `DatabaseEditor` class has 847 lines and 26 methods, violating Single Responsibility Principle.
 
 **Current Responsibilities:**
 - UI setup and layout
@@ -408,7 +408,7 @@ self.db = Database(self.file, self.table_name)
 **Refactoring Plan:**
 ```python
 # Use dependency injection
-class JazlerEditor:
+class DatabaseEditor:
     def __init__(self, database: Database, config: Config):
         self.db = database
         self.config = config
@@ -416,7 +416,7 @@ class JazlerEditor:
 # In main
 db = Database(file, table)
 config = Config()
-app = JazlerEditor(db, config)
+app = DatabaseEditor(db, config)
 ```
 
 **Benefits:**
@@ -431,7 +431,7 @@ app = JazlerEditor(db, config)
 ### Phase 1: Critical Refactoring (2-3 weeks)
 1. ✅ Extract validation logic from `save_song` → `SongValidator`
 2. ✅ Implement centralized error handling
-3. ✅ Break up `JazlerEditor` into smaller components
+3. ✅ Break up `DatabaseEditor` into smaller components
 
 ### Phase 2: Code Quality (1-2 weeks)
 1. ✅ Create `Theme` constants
@@ -456,7 +456,7 @@ app = JazlerEditor(db, config)
 ### Code Quality Metrics
 - **Current Lines per Method:** ~35 average
 - **Target:** <20 lines per method
-- **Current Class Size:** 847 lines (JazlerEditor)
+- **Current Class Size:** 847 lines (DatabaseEditor)
 - **Target:** <300 lines per class
 - **Test Coverage:** 67 tests
 - **Target:** 100+ tests with >85% coverage

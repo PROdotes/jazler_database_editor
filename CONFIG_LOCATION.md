@@ -6,12 +6,13 @@ The `config.json` file stores application settings including database paths, gen
 ## Location Behavior
 
 ### When Running as Standalone EXE
-When you build and run `JazlerEditor.exe`, the config file will be created in **the same directory as the executable**.
+When you build and run `DatabaseEditor.exe`, the config file will be created in **the same directory as the executable**.
 
-**Example:**
+For example, if you install to:
+
 ```
-C:\Program Files\JazlerEditor\
-├── JazlerEditor.exe
+C:\Program Files\DatabaseEditor\
+├── DatabaseEditor.exe
 └── config.json          ← Created here automatically
 ```
 
@@ -20,7 +21,7 @@ When running `python run.py` during development, the config file is created in t
 
 **Example:**
 ```
-jazler_database_editor/
+ms_database_sync_app/
 ├── src/
 ├── tests/
 ├── run.py

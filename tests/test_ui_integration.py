@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch, ANY
 import sys
 import threading
 
-from src.ui.app import JazlerEditor
+from src.ui.app import DatabaseEditor
 from src.models.song import Song, SongID3
 
 # -- Fixtures --
@@ -72,20 +72,20 @@ def app(mock_tk, mock_app_deps):
     # Patch the BASE CLASS init to avoid Tcl creation
     with patch('tkinter.Tk.__init__', return_value=None), \
          patch('src.ui.app.threading.Thread'), \
-         patch.object(JazlerEditor, 'ask_database_mode', return_value=False), \
-         patch.object(JazlerEditor, 'setup_ui'), \
-         patch.object(JazlerEditor, 'get_song'), \
-         patch.object(JazlerEditor, 'lift'), \
-         patch.object(JazlerEditor, 'attributes'), \
-         patch.object(JazlerEditor, 'title'), \
-         patch.object(JazlerEditor, 'config'), \
-         patch.object(JazlerEditor, 'deiconify'), \
-         patch.object(JazlerEditor, 'withdraw'), \
-         patch.object(JazlerEditor, 'after_idle'), \
-         patch.object(JazlerEditor, 'protocol'), \
-         patch.object(JazlerEditor, '_load_song_thread_job'):
+         patch.object(DatabaseEditor, 'ask_database_mode', return_value=False), \
+         patch.object(DatabaseEditor, 'setup_ui'), \
+         patch.object(DatabaseEditor, 'get_song'), \
+         patch.object(DatabaseEditor, 'lift'), \
+         patch.object(DatabaseEditor, 'attributes'), \
+         patch.object(DatabaseEditor, 'title'), \
+         patch.object(DatabaseEditor, 'config'), \
+         patch.object(DatabaseEditor, 'deiconify'), \
+         patch.object(DatabaseEditor, 'withdraw'), \
+         patch.object(DatabaseEditor, 'after_idle'), \
+         patch.object(DatabaseEditor, 'protocol'), \
+         patch.object(DatabaseEditor, '_load_song_thread_job'):
         
-        app = JazlerEditor()
+        app = DatabaseEditor()
 
         # Manually verify init state
         assert app.use_live is False

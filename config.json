@@ -1,57 +1,26 @@
 {
     "db_path_live": "\\\\ONAIR\\Jazler RadioStar 2\\Databases\\JZRS2DB-V5.accdb",
-    "db_path_test": "\\\\ONAIR\\Jazler RadioStar 2\\Databases - Copy\\JZRS2DB-V5.accdb",
+    "db_path_test": "C:\\Users\\prodo\\Downloads\\JZRS2DB-V5.accdb",
     "drive_map": {
         "b:": "z:"
     },
     "genre_rules": {
         "path_overrides": {
             "domoljubne": "z:\\songs\\cro\\domoljubne\\",
-            "religijske": "z:\\songs\\religiozne\\",
-            "acoustic": "z:\\songs\\akustika\\",
-            "club": "z:\\songs\\clubbing\\"
+            "religijske": "z:\\songs\\religiozne\\"
         },
         "no_year_subfolder": [
-            "rock",
-            "religiozne",
-            "oldies",
-            "x-mas",
-            "country",
-            "slow",
-            "metal",
-            "navijacke",
-            "jazz",
-            "dance",
-            "trance",
-            "electronic",
-            "acoustic",
-            "funk",
-            "blues",
-            "reggae",
-            "akustika",
-            "club",
-            "clubbing"
+            "rock"
         ],
         "no_genre_subfolder": [
             "pop"
         ],
-        "standard_subfolder": [
-            "cro",
-            "zabavne",
-            "cro zabavne",
-            "instrumental",
-            "kuruza",
-            "xxx",
-            "klape",
-            "italian",
-            "susjedi",
-            "world music"
-        ]
+        "standard_subfolder": []
     },
     "last_query": {
         "field": "artist",
         "match": "contains",
         "value": "",
-        "position": 54614
+        "position": 0
     }
 }

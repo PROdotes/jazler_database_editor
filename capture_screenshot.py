@@ -1,5 +1,5 @@
 """
-Screenshot capture utility for Jazler Database Editor.
+Screenshot capture utility for MS Access Database Editor.
 This script captures a screenshot of the active application window only.
 """
 import pyautogui

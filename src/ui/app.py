@@ -15,7 +15,7 @@ from src.core.database import Database
 from src.core.config import app_config
 
 
-class JazlerEditor(Tk):
+class DatabaseEditor(Tk):
     def __init__(self):
         super().__init__()
         self.withdraw() # Hide the main window immediately
@@ -163,7 +163,7 @@ class JazlerEditor(Tk):
         self.lift()
         self.attributes('-topmost', True)
         self.after_idle(self.attributes, '-topmost', False)
-        self.title(f"Jazler Editor - [{'LIVE' if self.use_live else 'TEST'}]")
+        self.title(f"Database Editor - [{'LIVE' if self.use_live else 'TEST'}]")
         self.config(bg="#2b2b2b")
 
         # Styles (Dark Mode)
