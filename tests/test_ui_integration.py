@@ -293,14 +293,20 @@ def test_save_song_bad_path_standard_genre(app, mock_tk, mock_app_deps):
     mock_config_instance = MagicMock()
     mock_config_instance.genre_rules = rules
     
+    # Mock Validator to fail with path issue (simulating what SongValidator would do)
+    issue = MagicMock()
+    issue.message = "File is in the wrong folder!"
+    app.validator.validate.return_value.is_valid = False
+    app.validator.validate.return_value.issues = [issue]
+    
     with patch('src.models.song.Song.check_genre', return_value=True), \
          patch('src.models.song.Song.get_genre_id', return_value=2), \
          patch('src.ui.app.app_config', mock_config_instance):
         app.save_song(False)
         
     # Verify Warning for "Wrong Folder"
-    warnings = [call[0][0] for call in mock_tk["ErrorHandler"].show_warning.call_args_list]
-    assert any("wrong folder" in w for w in warnings), f"Warnings found: {warnings}"
+    # app.py calls ErrorHandler.show_warning(validation_result.issues[0].message)
+    mock_tk["ErrorHandler"].show_warning.assert_called_with("File is in the wrong folder!")
     
     mock_app_deps["db"].update_song_fields.assert_not_called()
 
@@ -332,14 +338,19 @@ def test_save_song_unknown_genre(app, mock_tk, mock_app_deps):
     mock_config_instance = MagicMock()
     mock_config_instance.genre_rules = rules
     
+    # Mock Validator to fail (simulating SongValidator catching unknown genre)
+    issue = MagicMock()
+    issue.message = "Genre 'Mystery' is not defined in config rules!"
+    app.validator.validate.return_value.is_valid = False
+    app.validator.validate.return_value.issues = [issue]
+    
     with patch('src.models.song.Song.check_genre', return_value=True), \
          patch('src.models.song.Song.get_genre_id', return_value=2), \
          patch('src.ui.app.app_config', mock_config_instance):
         app.save_song(False)
         
     # Verify Warning for "Not Defined"
-    warnings = [call[0][0] for call in mock_tk["ErrorHandler"].show_warning.call_args_list]
-    assert any("not defined" in w for w in warnings), f"Warnings found: {warnings}"
+    mock_tk["ErrorHandler"].show_warning.assert_called_with("Genre 'Mystery' is not defined in config rules!")
     
     mock_app_deps["db"].update_song_fields.assert_not_called()
 

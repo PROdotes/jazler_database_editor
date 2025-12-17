@@ -649,29 +649,8 @@ class DatabaseEditor(Tk):
             if rename:
                  self.song_rename()
 
-            # Config Rules / Folder Validation
-            genre_name = self.song.genre_01_name.lower()
-            
-            std_sub = [g.lower() for g in app_config.genre_rules.get("standard_subfolder", [])]
-            
-            valid_genres = []
-            valid_genres.extend(std_sub)
-            valid_genres.extend([g.lower() for g in app_config.genre_rules.get("no_year_subfolder", [])])
-            valid_genres.extend([g.lower() for g in app_config.genre_rules.get("no_genre_subfolder", [])])
-            valid_genres.extend([g.lower() for g in app_config.genre_rules.get("path_overrides", {}).keys()])
-            
-            if genre_name not in valid_genres:
-                ErrorHandler.show_warning(f"Genre '{self.song.genre_01_name}' is not defined in config rules!")
-                return
+            # Config Rules / Folder Validation - Handled by SongValidator
 
-            if genre_name in std_sub:
-                if self.song.location_local.lower() != self.song.location_correct.lower():
-                     ErrorHandler.show_warning(
-                         f"File is in the wrong folder!\n\n"
-                         f"Current: {self.song.location_local}\n"
-                         f"Expected: {self.song.location_correct}"
-                     )
-                     return
 
             try:
                  self.db.update_song_fields(self.song.id, update_fields_dict)

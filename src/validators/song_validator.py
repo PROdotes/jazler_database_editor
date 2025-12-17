@@ -94,11 +94,11 @@ class SongValidator:
         g1 = song.genre_01_name.lower()
         rules = app_config.genre_rules
 
-        # Safety check for missing config keys
-        standard = rules.get("standard_subfolder", [])
-        overrides = rules.get("path_overrides", {})
-        no_year = rules.get("no_year_subfolder", [])
-        no_genre = rules.get("no_genre_subfolder", [])
+        # Safety check for missing config keys and normalize to lower case
+        standard = [g.lower() for g in rules.get("standard_subfolder", [])]
+        overrides = [g.lower() for g in rules.get("path_overrides", {}).keys()]
+        no_year = [g.lower() for g in rules.get("no_year_subfolder", [])]
+        no_genre = [g.lower() for g in rules.get("no_genre_subfolder", [])]
 
         is_standard = g1 in standard
         is_special = (g1 in overrides or g1 in no_year or g1 in no_genre)

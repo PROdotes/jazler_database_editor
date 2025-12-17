@@ -19,6 +19,7 @@ CONFIG_FILE = path.join(BASE_DIR, "config.json")
 DEFAULT_CONFIG = {
     "db_path_live": r"\\ONAIR\Jazler RadioStar 2\Databases\JZRS2DB-V5.accdb",
     "db_path_test": r"\\ONAIR\Jazler RadioStar 2\Databases - Copy\JZRS2DB-V5.accdb",
+    "base_songs_path": r"z:\songs",
     "drive_map": {
         "b:": "z:"
     },
@@ -128,6 +129,10 @@ class Config:
     @property
     def genre_rules(self) -> Dict[str, Any]:
         return self._data.get("genre_rules", DEFAULT_CONFIG["genre_rules"])
+
+    @property
+    def base_songs_path(self) -> str:
+        return self._data.get("base_songs_path", DEFAULT_CONFIG["base_songs_path"])
 
     def set_db_mode(self, use_live: bool) -> str:
         """Returns the selected database file path based on mode."""

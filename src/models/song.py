@@ -3,42 +3,24 @@ from os import path
 from src.utils.audio import AudioMetadata
 from typing import List, Dict, Any, Tuple, Optional
 from src.utils.error_handler import ErrorHandler
-
-# DB Column Indices
-IDX_ID = 0
-IDX_ARTIST_ID = 1
-IDX_TITLE = 2
-IDX_GENRE_1_ID = 3
-IDX_GENRE_2_ID = 4
-IDX_GENRE_3_ID = 5
-IDX_GENRE_4_ID = 6
-IDX_GENRE_5_ID = 7
-IDX_YEAR = 8
-IDX_ENABLED = 12
-IDX_AUTOPLAY = 13
-IDX_DURATION = 14
-IDX_FILENAME = 20
-IDX_COMPOSER = 24
-IDX_ALBUM = 25
-IDX_ISRC = 27
-IDX_PUBLISHER = 32
-IDX_ARTIST_NAME = 36
+from src.utils.id3_tags import ID3Tags
+from src.models.db_schema import SongColumns as Col
 
 
 class Song:
     def __init__(self, input_data: Tuple[Any, ...], genres: Dict[int, str], decades: Dict[int, str], tempos: Dict[int, str]):
-        self.id = input_data[IDX_ID]
-        self.artist_id = input_data[IDX_ARTIST_ID]
-        self.title = input_data[IDX_TITLE]
-        self.genre_01_id = input_data[IDX_GENRE_1_ID]
+        self.id = input_data[Col.AUID]
+        self.artist_id = input_data[Col.ARTIST_CODE]
+        self.title = input_data[Col.TITLE]
+        self.genre_01_id = input_data[Col.CAT1A]
         self.genre_01_name = genres[self.genre_01_id]
-        self.genre_02_id = input_data[IDX_GENRE_2_ID]
+        self.genre_02_id = input_data[Col.CAT1B]
         self.genre_02_name = genres[self.genre_02_id]
-        self.genre_03_id = input_data[IDX_GENRE_3_ID]
+        self.genre_03_id = input_data[Col.CAT1C]
         self.genre_03_name = genres[self.genre_03_id]
-        self.genre_04_id = input_data[IDX_GENRE_4_ID]
+        self.genre_04_id = input_data[Col.CAT2]
         self.genre_04_name = decades[self.genre_04_id]
-        self.genre_05_id = input_data[IDX_GENRE_5_ID]
+        self.genre_05_id = input_data[Col.CAT3]
         self.genre_05_name = tempos[self.genre_05_id]
         
         self.genres_all = Song.list_to_string(genres[0], [self.genre_01_name, self.genre_02_name, self.genre_03_name])
@@ -46,28 +28,30 @@ class Song:
         self.tempo = self.genre_05_name
         
         try:
-            self.year = int(input_data[IDX_YEAR])
+            self.year = int(input_data[Col.YEAR])
         except (ValueError, TypeError):
             self.year = 0
             
-        self.enabled = input_data[IDX_ENABLED]
-        self.auto_play = input_data[IDX_AUTOPLAY]
-        self.duration = input_data[IDX_DURATION]
-        self.location = input_data[IDX_FILENAME]
+        self.enabled = input_data[Col.ENABLED]
+        self.auto_play = input_data[Col.ENABLED_AUTO]
+        self.duration = input_data[Col.DURATION]
+        self.location = input_data[Col.FILENAME]
         
         # Apply drive mapping
         self.location_local = self.location.lower()
         for k, v in app_config.drive_map.items():
             self.location_local = self.location_local.replace(k, v)
             
-        self.composer = input_data[IDX_COMPOSER]
-        self.album = input_data[IDX_ALBUM]
-        self.isrc = input_data[IDX_ISRC]
-        self.publisher = input_data[IDX_PUBLISHER]
-        self.artist = input_data[IDX_ARTIST_NAME]
+        self.composer = input_data[Col.COMPOSER]
+        self.album = input_data[Col.ALBUM]
+        self.isrc = input_data[Col.CD_KEY]
+        self.publisher = input_data[Col.LABEL]
+        self.artist = input_data[Col.ARTIST_NAME]
         
         self.exists = path.isfile(self.location_local)
         self.location_correct = self.get_expected_path()
+
+
 
     @classmethod
     def from_db_record(cls, database_entry: Tuple[Any, ...], genre_map: Dict[int, str], decade_map: Dict[int, str], tempo_map: Dict[int, str]) -> Tuple['Song', Optional['SongID3']]:
@@ -90,17 +74,17 @@ class Song:
                 tag = {}
                 
             # Fallback for Year: TDRC (Recording Time) preferred, TYER (Year) fallback for ID3v2.3
-            year_tag = tag.get("TDRC")
+            year_tag = tag.get(ID3Tags.YEAR)
             if year_tag is None:
-                year_tag = tag.get("TYER")
+                year_tag = tag.get(ID3Tags.YEAR_LEGACY)
                 
             # Fallback for Key/Done: TKEY1 preferred, TKEY as fallback
-            key_tag = tag.get("TKEY1")
+            key_tag = tag.get(ID3Tags.KEY_LEGACY)
             if key_tag is None:
-                key_tag = tag.get("TKEY")
+                key_tag = tag.get(ID3Tags.KEY)
                 
-            id3 = SongID3(tag.get("TPE1"), tag.get("TIT2"), tag.get("TCOM"), tag.get("TALB"), year_tag,
-                          tag.get("TCON"), tag.get("TPUB"), tag.get("TSRC"), tag.get("TLEN"), key_tag, id3_error)
+            id3 = SongID3(tag.get(ID3Tags.ARTIST), tag.get(ID3Tags.TITLE), tag.get(ID3Tags.COMPOSER), tag.get(ID3Tags.ALBUM), year_tag,
+                          tag.get(ID3Tags.GENRE), tag.get(ID3Tags.PUBLISHER), tag.get(ID3Tags.ISRC), tag.get(ID3Tags.DURATION), key_tag, id3_error)
             
             if id3.duration == "" or id3.duration is None:
                 id3.duration = AudioMetadata.song_length(song.location_local)
@@ -112,21 +96,23 @@ class Song:
     def get_expected_path(self) -> str:
         genre = self.genre_01_name.lower()
         filename = f'{self.artist} - {self.title}.mp3'
+        base_path = app_config.base_songs_path
         
         # Check overrides
         if genre in app_config.genre_rules["path_overrides"]:
             folder = app_config.genre_rules["path_overrides"][genre]
             return path.join(folder, filename)
 
-        folder = f'z:\\songs\\{genre}\\{self.year}\\'.lower()
+        folder = path.join(base_path, genre, str(self.year)).lower()
         
         if genre in app_config.genre_rules["no_year_subfolder"]:
-            folder = f'z:\\songs\\{genre}\\'.lower()
+            folder = path.join(base_path, genre).lower()
             
         if genre in app_config.genre_rules["no_genre_subfolder"]:
-            folder = f'z:\\songs\\{self.year}\\'.lower()
+            folder = path.join(base_path, str(self.year)).lower()
 
         return path.join(folder, filename)
+
 
     @staticmethod
     def list_to_string(genre0: str, strings: List[str]) -> str:

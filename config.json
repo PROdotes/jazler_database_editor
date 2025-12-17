@@ -1,6 +1,7 @@
 {
     "db_path_live": "\\\\ONAIR\\Jazler RadioStar 2\\Databases\\JZRS2DB-V5.accdb",
     "db_path_test": "\\\\ONAIR\\Jazler RadioStar 2\\Databases - Copy\\JZRS2DB-V5.accdb",
+    "base_songs_path": "z:\\songs",
     "drive_map": {
         "b:": "z:"
     },

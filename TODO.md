@@ -1,49 +1,26 @@
 # TODO - Jazler Database Editor
 
 **Last Updated:** 2025-12-17  
-**Tests Passing:** 99/99 ✅
+**Tests Passing:** 100/100 ✅
 
 ---
 
 ## 🚧 In Progress
 
 **Next:**
-- [ ] Refactor `save_song` validation logic (High Priority)
+(No active tasks)
 
 ---
 
 ## 🔴 High Priority
 
-### 1. Extract Validation Logic from `save_song()`
-**Status:** ⚠️ Needs Refinement
-- ✅ `src/validators/song_validator.py` created
-- ✅ `src/validators/validation_result.py` created
-- ✅ Tests added (`tests/test_song_validator.py`)
-- ⚠️ Validation logic currently inline in `save_song()` (restored for stability)
-- [ ] Need to fully migrate to Validator class
+(No high priority tasks currently)
 
 ---
 
 ## 🟡 Medium Priority
 
-### 2. Enhanced Error Log Viewer
-**Current:** Basic (shows last 5 errors)  
-**Target:** Full-featured table with filters
-
-**Features:**
-- Sortable columns (Time, Level, Message)
-- Filters (by level, by time)
-- Stack trace viewer
-- Export to file
-- Clear log button
-
-**Files:**
-- `src/ui/dialogs/error_log_viewer.py` (~200 lines)
-- `tests/test_error_log_viewer.py` (~100 lines)
-
----
-
-### 3. Field Registry Pattern
+### 1. Field Registry Pattern
 **Current:** Field mappings duplicated in 3+ places  
 **Time:** 4 hours
 
@@ -66,7 +43,7 @@ class FieldDefinition:
 
 ---
 
-### 4. Extract Dialogs
+### 2. Extract Dialogs
 **Time:** 4 hours total
 
 **Create:**
@@ -80,31 +57,7 @@ class FieldDefinition:
 
 ---
 
-### 5. Magic Numbers - SongColumns Enum
-**Current:** 24 separate index constants in Song.py  
-**Time:** 2 hours
-
-**Create:**
-```python
-# src/models/db_schema.py
-from enum import IntEnum
-
-class SongColumns(IntEnum):
-    ID = 0
-    ARTIST_ID = 1
-    TITLE = 2
-    GENRE_1_ID = 3
-    # ... etc
-```
-
-**Benefits:**
-- Better maintainability
-- Type safety
-- Self-documenting code
-
----
-
-### 6. Thread Management - AsyncExecutor
+### 3. Thread Management - AsyncExecutor
 **Current:** Threading logic scattered in get_song, query_button_click  
 **Time:** 3 hours
 
@@ -122,8 +75,10 @@ class AsyncExecutor:
 
 ---
 
-### 7. Config Class Enhancement
-**Current:** Config mixes file I/O with property access  
+## 🟢 Low Priority (Future)
+
+### 4. Config Class Enhancement
+**Current:** Config mixes file I/O with property access (139 lines, manageable)  
 **Time:** 3 hours
 
 **Create:**
@@ -133,11 +88,10 @@ class AsyncExecutor:
 **Benefits:**
 - Separation of concerns
 - Easier testing
-- Better validation
 
 ---
 
-### 8. Test Organization
+### 5. Test Organization
 **Current:** All tests in root tests/ folder  
 **Time:** 2 hours
 
@@ -152,15 +106,12 @@ tests/
 
 **Benefits:**
 - Better organization
-- Clearer test types
 - Easier to run specific test suites
 
 ---
 
-## 🟢 Low Priority (Future)
-
-### 9. Break Up DatabaseEditor Class
-**Current:** 847 lines, 26 methods  
+### 6. Break Up DatabaseEditor Class
+**Current:** 870 lines, 26 methods  
 **Time:** 2-3 days  
 **Risk:** High - touches entire UI
 
@@ -175,7 +126,7 @@ tests/
 
 ---
 
-### 10. Specific Documentation Needs
+### 7. Specific Documentation Needs
 **Time:** 3 hours  
 **Target:** Complex methods with business logic
 
@@ -189,13 +140,12 @@ tests/
 
 ---
 
-### 11. Specific Testing Gaps
-**Time:** 4 hours  
+### 8. Specific Testing Gaps
+**Time:** 3 hours  
 **Target:** Edge cases and complex logic
 
 **Add Tests For:**
-- [ ] Individual validation functions (once extracted)
-- [ ] Path validation for different genre rules
+- [x] Path validation for different genre rules ✅
 - [ ] Artist "startswith" matching logic
 - [ ] Genre deduplication and limiting to 3
 - [ ] Year = 0 handling
@@ -204,7 +154,7 @@ tests/
 
 ---
 
-### 12. Performance Optimization
+### 9. Performance Optimization
 **Only if needed:**
 - Profile slow operations
 - Optimize database queries
@@ -212,44 +162,71 @@ tests/
 
 ---
 
-### 13. Known Issues / Tech Debt
+### 10. Known Issues / Tech Debt
 
 **Track these for future reference:**
-1. **God Class:** DatabaseEditor is 887 lines - needs breaking up
-2. **Magic Numbers:** 24 database column index constants
+1. **God Class:** DatabaseEditor is 870 lines - needs breaking up
+2. **Magic Numbers:** ✅ Addressed with `SongColumns` IntEnum and `ID3Tags` constants
 3. **Threading:** Thread creation scattered across methods
 4. **Config I/O:** Mixed with property access in Config class
 
 ---
 
-### 14. Modern Code Practices & Cleanups
-**Time:** 4 hours
+### 11. Modern Code Practices & Cleanups
+**Time:** 3 hours
 **Target:** Codebase modernization
 
 **Tasks:**
 1. **Layout Constants:** Extract fonts (`("Segoe UI", 9)`) and metrics (`padx=20`) to `Theme` class
-2.  **Audio Magic Strings:** Replace `"TPE1"`, `"TIT2"` in `audio.py` with Enum/Constants
-3.  **Strict Typing:** Add type hints to UI methods (events) and enable strict mypy mode
-4.  **Lambda Refactoring:** Replace complex UI lambdas with named methods for better debugging
+2. ~~**Audio Magic Strings:** Replace `"TPE1"`, `"TIT2"` in `audio.py` with `ID3Tags` constants~~ ✅ Done
+3. **Strict Typing:** Add type hints to UI methods (events) and enable strict mypy mode
+4. **Lambda Refactoring:** Replace complex UI lambdas with named methods for better debugging
+5. **SongID3 Dataclass:** Refactor `SongID3.__init__` (11 params) to use `@dataclass` or builder pattern
 
 ---
 
-### 15. UX Polish & Usability
+### 12. UX Polish & Usability
 **Time:** 4 hours
 **Target:** User Experience Improvement
 
 **Tasks:**
-1.  **Tooltips:** Add hover tooltips to copy buttons (`->`, `<-`) and status indicators
-2.  **Loading State:** Add `cursor="wait"` and visual indicator during async operations (Query/Load)
-3.  **Button Sizing:** Increase hit area for small action buttons (min-width 30px)
-4.  **Visual Hierarchy:** Add subtle background distinction between Database (left) and ID3 (right) columns
-5.  **Tab Order:** Verify and explicit set logical tab navigation order
+1. **Tooltips:** Add hover tooltips to copy buttons (`->`, `<-`) and status indicators
+2. **Loading State:** Add `cursor="wait"` and visual indicator during async operations
+3. **Button Sizing:** Increase hit area for small action buttons (min-width 30px)
+4. **Visual Hierarchy:** Add subtle background distinction between Database (left) and ID3 (right) columns
+5. **Tab Order:** Verify and explicitly set logical tab navigation order
 
-**Note:** Items 1-4 are addressed in other TODO sections above
+---
+
+## ⏳ Maybe Add Later
+
+### Enhanced Error Log Viewer
+**Current:** Basic version exists (shows last 5 errors)  
+**Target:** Full-featured table with filters
+
+**Features:**
+- Sortable columns (Time, Level, Message)
+- Filters (by level, by time)
+- Stack trace viewer
+- Export to file
+- Clear log button
+
+**Files:**
+- `src/ui/dialogs/error_log_viewer.py` (exists, ~200 lines)
+- `tests/test_error_log_viewer.py` (not started)
 
 ---
 
 ## ✅ Completed
+
+### Extract Validation Logic (Dec 17, 2025)
+- ✅ Created `src/validators/song_validator.py`
+- ✅ Implemented `SongValidator` class with distinct validation rules
+- ✅ Added `ValidationResult` for structured error reporting
+- ✅ Updated `save_song` to use `SongValidator` exclusively
+- ✅ Fixed case-sensitivity bug in Path Validation
+- ✅ Removed legacy inline validation from `app.py`
+- ✅ Added comprehensive tests (`tests/test_song_validator.py`)
 
 ### Theme System (Dec 17, 2025)
 - ✅ Created `theme.json` with 13 color categories
@@ -275,3 +252,12 @@ tests/
 - ✅ Replaced all legacy Messageboxes and Prints
 - ✅ Secured song_rename() against data corruption
 - ✅ 100% Test Pass Rate
+
+### Clean Code Quick Wins (Dec 17, 2025)
+- ✅ Added `base_songs_path` to config (removed hardcoded `z:\songs\`)
+- ✅ Created `src/utils/id3_tags.py` with `ID3Tags` constants
+- ✅ Updated `audio.py` and `song.py` to use ID3Tags constants
+- ✅ Created `src/models/db_schema.py` with `SongColumns` IntEnum (all 52 columns!)
+- ✅ Mapped all database fields from `snDatabase` table
+- ✅ All 100 tests passing
+
