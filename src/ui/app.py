@@ -10,6 +10,7 @@ from tkinter.ttk import Combobox
 
 # Updated Imports for New Structure
 from src.models.song import Song, SongID3
+from src.models.field_definition import field_registry
 from src.utils.audio import AudioMetadata
 from src.core.database import Database
 from src.core.config import app_config
@@ -382,17 +383,14 @@ class DatabaseEditor(Tk):
     def query_execute(self, field_in, match, query, save=True):
         if save:
             app_config.save_last_query(field_in, match, query)
-        field_out = "fldArtistName"
-        mapping = {
-            "artist": "fldArtistName",
-            "title": "fldTitle",
-            "album": "fldAlbum",
-            "composer": "fldComposer",
-            "publisher": "fldLabel",
-            "year": "fldYear"
-        }
-        if field_in in mapping:
-            field_out = mapping[field_in]
+        
+        # Use field registry for mapping
+        field_def = field_registry.get(field_in)
+        if field_def and field_def.queryable:
+            field_out = field_def.db_column
+        else:
+            # Fallback to artist if field not found or not queryable
+            field_out = "fldArtistName"
 
         if match == "contains":
             return self.db.fetch_songs(field_out, query, False)
@@ -736,7 +734,9 @@ class DatabaseEditor(Tk):
         window_query.title("Database query")
         window_query.config(bg=theme.BG_DARK)
         
-        dropdown_field = Combobox(window_query, values=["artist", "title", "album", "composer", "publisher", "year"])
+        # Get queryable fields from registry
+        queryable_fields = [f.name for f in field_registry.queryable()]
+        dropdown_field = Combobox(window_query, values=queryable_fields)
         dropdown_field.grid(row=0, column=0, padx=5, pady=10)
         dropdown_field.set("artist")
         
