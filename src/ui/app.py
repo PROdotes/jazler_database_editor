@@ -31,6 +31,26 @@ class DatabaseEditor(Tk):
         self.table_name = 'snDatabase'
         self.db = self.connect_database()
 
+        # Enforce Registry Correctness
+        # This ensures we never forget to add a field to the registry
+        expected_fields = {"artist", "title", "album", "composer", "publisher", 
+                          "year", "decade", "genre", "isrc", "duration"}
+        actual_fields = set(field_registry.names)
+        
+        if expected_fields != actual_fields:
+            missing = expected_fields - actual_fields
+            extra = actual_fields - expected_fields
+            error_msg = []
+            if missing:
+                error_msg.append(f"Missing fields: {missing}")
+            if extra:
+                error_msg.append(f"Extra fields: {extra}")
+            
+            # Crash loudly so we can't ignore it
+            full_msg = "Field Registry Error! " + "; ".join(error_msg)
+            ErrorHandler.show_critical(full_msg)
+            raise ValueError(full_msg)
+
         # Data Maps
         self.genre_map = self.db.generate_genre_map()
         self.reverse_genre_map = {v: k for k, v in self.genre_map.items()}
