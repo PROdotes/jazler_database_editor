@@ -1,28 +1,29 @@
 # TODO - Jazler Database Editor
 
 **Last Updated:** 2025-12-17  
-**Tests Passing:** 100/100 ✅
+**Tests Passing:** 122/122 ✅ (Added 22 field mapping tests)
 
 ---
 
 ## 🚧 In Progress
 
-**Next:**
-(No active tasks)
+**Next:** Phase 1, Task #1 - Field Registry Pattern  
+**Status:** ✅ Pre-refactoring tests complete - **95% confidence**  
+**Coverage:** All 12 field usage locations validated (see `.agent/field_mapping_test_report.md`)  
+**Ready to start:** Safe to proceed with refactoring
+
+
 
 ---
 
-## 🔴 High Priority
-
-(No high priority tasks currently)
-
----
-
-## 🟡 Medium Priority
+## � Phase 1: Foundation (11 hours)
+**Goal:** Build core abstractions that unlock future refactoring  
+**Dependencies:** These enable Phase 2 and beyond
 
 ### 1. Field Registry Pattern
 **Current:** Field mappings duplicated in 3+ places  
-**Time:** 4 hours
+**Time:** 4 hours  
+**Unlocks:** Extract Dialogs (#2), Break Up DatabaseEditor (#6)
 
 **Create:**
 ```python
@@ -43,23 +44,10 @@ class FieldDefinition:
 
 ---
 
-### 2. Extract Dialogs
-**Time:** 4 hours total
-
-**Create:**
-- `src/ui/dialogs/database_selector.py` (2h)
-- `src/ui/dialogs/query_dialog.py` (2h)
-
-**Benefits:**
-- Separation of concerns
-- Reusable components
-- Easier testing
-
----
-
-### 3. Thread Management - AsyncExecutor
+### 2. Thread Management - AsyncExecutor
 **Current:** Threading logic scattered in get_song, query_button_click  
-**Time:** 3 hours
+**Time:** 3 hours  
+**Unlocks:** Extract Dialogs (#3)
 
 **Create:**
 ```python
@@ -75,25 +63,30 @@ class AsyncExecutor:
 
 ---
 
-## 🟢 Low Priority (Future)
-
-### 4. Config Class Enhancement
-**Current:** Config mixes file I/O with property access (139 lines, manageable)  
-**Time:** 3 hours
+### 3. Extract Dialogs
+**Time:** 4 hours total  
+**Requires:** Field Registry (#1), Thread Management (#2)
 
 **Create:**
-- `src/core/config_loader.py` - File I/O only
-- `src/core/config_validator.py` - Validation logic
+- `src/ui/dialogs/database_selector.py` (2h)
+- `src/ui/dialogs/query_dialog.py` (2h)
 
 **Benefits:**
 - Separation of concerns
+- Reusable components
 - Easier testing
+- Reduces DatabaseEditor from 870 lines
 
 ---
 
-### 5. Test Organization
+## 📋 Phase 2: Organization (5 hours)
+**Goal:** Prepare infrastructure for comprehensive testing  
+**Dependencies:** Independent, but builds on Phase 1
+
+### 4. Test Organization
 **Current:** All tests in root tests/ folder  
-**Time:** 2 hours
+**Time:** 2 hours  
+**Unlocks:** Testing Gaps (#5)
 
 **Create:**
 ```
@@ -107,13 +100,84 @@ tests/
 **Benefits:**
 - Better organization
 - Easier to run specific test suites
+- Clear home for new tests
 
 ---
 
-### 6. Break Up DatabaseEditor Class
+### 5. Specific Testing Gaps
+**Time:** 3 hours  
+**Target:** Edge cases and complex logic  
+**Requires:** Test Organization (#4)
+
+**Add Tests For:**
+- [x] Path validation for different genre rules ✅
+- [ ] Artist "startswith" matching logic
+- [ ] Genre deduplication and limiting to 3
+- [ ] Year = 0 handling
+- [ ] File rename operations with rollback
+- [ ] Error recovery scenarios
+
+---
+
+## 📋 Phase 3: Polish (6 hours)
+**Goal:** Clean up architectural patterns  
+**Dependencies:** Independent, similar refactoring mindset
+
+### 6. Config Class Enhancement
+**Current:** Config mixes file I/O with property access (139 lines, manageable)  
+**Time:** 3 hours
+
+**Create:**
+- `src/core/config_loader.py` - File I/O only
+- `src/core/config_validator.py` - Validation logic
+
+**Benefits:**
+- Separation of concerns
+- Easier testing
+
+---
+
+### 7. Modern Code Practices & Cleanups
+**Time:** 3 hours  
+**Target:** Codebase modernization
+
+**Tasks:**
+1. **Layout Constants:** Extract fonts (`("Segoe UI", 9)`) and metrics (`padx=20`) to `Theme` class
+2. ~~**Audio Magic Strings:** Replace `"TPE1"`, `"TIT2"` in `audio.py` with `ID3Tags` constants~~ ✅ Done
+3. **Strict Typing:** Add type hints to UI methods (events) and enable strict mypy mode
+4. **Lambda Refactoring:** Replace complex UI lambdas with named methods for better debugging
+5. **SongID3 Dataclass:** Refactor `SongID3.__init__` (11 params) to use `@dataclass` or builder pattern
+
+---
+
+## 📋 Phase 4: Documentation (3 hours)
+**Goal:** Document the clean, refactored architecture  
+**Dependencies:** Should come AFTER Phases 1-3
+
+### 8. Specific Documentation Needs
+**Time:** 3 hours  
+**Target:** Complex methods with business logic  
+**Note:** Do this after refactoring to document clean code
+
+**Priority Methods:**
+- `save_song()` - Explain validation flow
+- `check_genre()` - Document special rules (e.g., "za obradu" optional)
+- `get_expected_path()` - Explain path generation logic
+- `process_string_comparison()` - Clarify artist vs standard matching
+
+**General:** Add docstrings to all public methods
+
+---
+
+## 📋 Phase 5: Optional (As Needed)
+**Goal:** Major refactoring and optimization  
+**Dependencies:** Much easier after Phases 1-3
+
+### 9. Break Up DatabaseEditor Class
 **Current:** 870 lines, 26 methods  
 **Time:** 2-3 days  
-**Risk:** High - touches entire UI
+**Risk:** High - touches entire UI  
+**Requires:** Field Registry (#1), Extract Dialogs (#3) make this MUCH easier
 
 **Only do if:**
 - Planning major new features
@@ -126,35 +190,7 @@ tests/
 
 ---
 
-### 7. Specific Documentation Needs
-**Time:** 3 hours  
-**Target:** Complex methods with business logic
-
-**Priority Methods:**
-- `save_song()` - Explain validation flow
-- `check_genre()` - Document special rules (e.g., "za obradu" optional)
-- `get_expected_path()` - Explain path generation logic
-- `process_string_comparison()` - Clarify artist vs standard matching
-
-**General:** Add docstrings to all public methods
-
----
-
-### 8. Specific Testing Gaps
-**Time:** 3 hours  
-**Target:** Edge cases and complex logic
-
-**Add Tests For:**
-- [x] Path validation for different genre rules ✅
-- [ ] Artist "startswith" matching logic
-- [ ] Genre deduplication and limiting to 3
-- [ ] Year = 0 handling
-- [ ] File rename operations with rollback
-- [ ] Error recovery scenarios
-
----
-
-### 9. Performance Optimization
+### 10. Performance Optimization
 **Only if needed:**
 - Profile slow operations
 - Optimize database queries
@@ -162,32 +198,24 @@ tests/
 
 ---
 
-### 10. Known Issues / Tech Debt
+### 11. Known Issues / Tech Debt
 
 **Track these for future reference:**
-1. **God Class:** DatabaseEditor is 870 lines - needs breaking up
+1. **God Class:** DatabaseEditor is 870 lines - needs breaking up (see #9)
 2. **Magic Numbers:** ✅ Addressed with `SongColumns` IntEnum and `ID3Tags` constants
-3. **Threading:** Thread creation scattered across methods
-4. **Config I/O:** Mixed with property access in Config class
+3. **Threading:** Thread creation scattered across methods (see #2)
+4. **Config I/O:** Mixed with property access in Config class (see #6)
 
 ---
 
-### 11. Modern Code Practices & Cleanups
-**Time:** 3 hours
-**Target:** Codebase modernization
-
-**Tasks:**
-1. **Layout Constants:** Extract fonts (`("Segoe UI", 9)`) and metrics (`padx=20`) to `Theme` class
-2. ~~**Audio Magic Strings:** Replace `"TPE1"`, `"TIT2"` in `audio.py` with `ID3Tags` constants~~ ✅ Done
-3. **Strict Typing:** Add type hints to UI methods (events) and enable strict mypy mode
-4. **Lambda Refactoring:** Replace complex UI lambdas with named methods for better debugging
-5. **SongID3 Dataclass:** Refactor `SongID3.__init__` (11 params) to use `@dataclass` or builder pattern
-
 ---
 
-### 12. UX Polish & Usability
+## ⏳ Maybe Add Later
+
+### UX Polish & Usability
 **Time:** 4 hours
 **Target:** User Experience Improvement
+**Note:** Deferred until core functionality is complete
 
 **Tasks:**
 1. **Tooltips:** Add hover tooltips to copy buttons (`->`, `<-`) and status indicators
@@ -197,8 +225,6 @@ tests/
 5. **Tab Order:** Verify and explicitly set logical tab navigation order
 
 ---
-
-## ⏳ Maybe Add Later
 
 ### Enhanced Error Log Viewer
 **Current:** Basic version exists (shows last 5 errors)  
