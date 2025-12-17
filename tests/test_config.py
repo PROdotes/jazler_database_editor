@@ -61,24 +61,24 @@ def test_corrupt_config_file(clean_config):
     cfg = Config()
     assert cfg.db_path_live == DEFAULT_LIVE_PATH
 
-def test_save_query_error(clean_config, capsys):
+def test_save_query_error(clean_config):
     """Test handling of write error during save_last_query."""
     cfg = Config()
     
     # Mock open to raise PermissionError when writing
-    # We must allow read (for load_from_file called inside save_last_query)
-    # So we only fail on mode='w'
-    
     original_open = open
     def side_effect(file, mode='r', *args, **kwargs):
         if 'w' in mode:
             raise PermissionError("Disk Full")
         return original_open(file, mode, *args, **kwargs)
 
-    with patch('builtins.open', side_effect=side_effect):
+    with patch('builtins.open', side_effect=side_effect), \
+         patch('src.core.config.ErrorHandler') as MockErrorHandler:
         cfg.save_last_query("artist", "eq", "val")
         
-    # Verify error was printed (captured by capsys)
-    captured = capsys.readouterr()
-    assert "Error saving last query" in captured.out
-    assert "Disk Full" in captured.out
+        # Verify ErrorHandler was called
+        MockErrorHandler.log_silent.assert_called()
+        args = MockErrorHandler.log_silent.call_args[0]
+        assert isinstance(args[0], PermissionError)
+        assert args[1] == "Saving last query"
+

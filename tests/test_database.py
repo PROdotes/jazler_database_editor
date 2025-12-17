@@ -63,7 +63,7 @@ def test_fetch_all_songs(db_instance, mock_cursor):
     """Test fetching all songs (no params)."""
     db_instance.fetch_all_songs()
     query = mock_cursor.execute.call_args[0][0]
-    assert "SELECT * FROM snDatabase" in query
+    assert "SELECT TOP 2000 * FROM snDatabase" in query
     # Should call execute with NO params (hitting line 19 in _fetch)
     assert len(mock_cursor.execute.call_args[0]) == 1
 

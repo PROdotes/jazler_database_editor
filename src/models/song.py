@@ -2,6 +2,7 @@ from src.core.config import app_config
 from os import path
 from src.utils.audio import AudioMetadata
 from typing import List, Dict, Any, Tuple, Optional
+from src.utils.error_handler import ErrorHandler
 
 # DB Column Indices
 IDX_ID = 0
@@ -84,7 +85,7 @@ class Song:
                 tag = AudioMetadata.get_tag(song.location_local)
                 id3_error = ""
             except Exception as e:
-                print(f"---Error while reading tag: {e}")
+                ErrorHandler.log_silent(e, "Reading ID3 tag")
                 id3_error = "ID3 error"
                 tag = {}
                 
@@ -172,6 +173,38 @@ class Song:
 
     def __repr__(self):
         return f"<Song id={self.id} artist='{self.artist}' title='{self.title}'>"
+
+    def normalize_genres(self, default_genre: str):
+        """
+        Deduplicates genres and reformats the genres_all string.
+        """
+        genre_list = self.genres_all.split(", ")
+        # Deduplicate preserving order
+        genre_list = list(dict.fromkeys(genre_list))
+        self.genres_all = Song.list_to_string(default_genre, genre_list)
+
+    def update_genre_ids(self, reverse_genre_map: Dict[str, int], default_genre: str):
+        """
+        Updates individual genre fields (01-03) based on genres_all string.
+        """
+        # Re-parse from the normalized string (logic mirrors app.py)
+        # However, list_to_string removes the default genre. 
+        # app.py logic uses the list BEFORE stringification for setting IDs?
+        # No, app.py uses `genre_ids` which was deduped list.
+        # But `list_to_string` filters out `default_genre` (usually 'x').
+        
+        # If we re-split self.genres_all, we get the valid genres.
+        current_genres = [g for g in self.genres_all.split(", ") if g and g != default_genre]
+        
+        # Ensure at least 3 slots
+        self.genre_01_name = current_genres[0] if len(current_genres) > 0 else default_genre
+        self.genre_01_id = Song.get_genre_id(self.genre_01_name, reverse_genre_map)
+        
+        self.genre_02_name = current_genres[1] if len(current_genres) > 1 else default_genre
+        self.genre_02_id = Song.get_genre_id(self.genre_02_name, reverse_genre_map)
+        
+        self.genre_03_name = current_genres[2] if len(current_genres) > 2 else default_genre
+        self.genre_03_id = Song.get_genre_id(self.genre_03_name, reverse_genre_map)
 
     def __str__(self):
         return f"{self.artist} - {self.title} ({self.year})"

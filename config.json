@@ -1,6 +1,6 @@
 {
     "db_path_live": "\\\\ONAIR\\Jazler RadioStar 2\\Databases\\JZRS2DB-V5.accdb",
-    "db_path_test": "C:\\Users\\prodo\\Downloads\\JZRS2DB-V5.accdb",
+    "db_path_test": "\\\\ONAIR\\Jazler RadioStar 2\\Databases - Copy\\JZRS2DB-V5.accdb",
     "drive_map": {
         "b:": "z:"
     },
@@ -21,6 +21,6 @@
         "field": "artist",
         "match": "contains",
         "value": "",
-        "position": 0
+        "position": 64
     }
 }

@@ -1,0 +1,145 @@
+{
+    "_comment": "Theme configuration for MS Database Sync App",
+    "_description": "All colors are in hex format (#RRGGBB). Modify these values to customize the application's appearance.",
+    "backgrounds": {
+        "dark": {
+            "hex": "#2b2b2b",
+            "name": "Charcoal Gray",
+            "description": "Main background color for windows, frames, and dialogs",
+            "used_in": [
+                "Main window background",
+                "Database selection dialog",
+                "Query dialog background",
+                "Main frame background",
+                "Label backgrounds"
+            ]
+        },
+        "lighter": {
+            "hex": "#3c3f41",
+            "name": "Dark Slate Gray",
+            "description": "Slightly lighter background for input fields and interactive elements",
+            "used_in": [
+                "Entry field backgrounds (DB and ID3 columns)",
+                "Query input field",
+                "Jump position input",
+                "Normal/valid field state"
+            ]
+        },
+        "control_bar": {
+            "hex": "#1e1e1e",
+            "name": "Almost Black",
+            "description": "Darker background for control/navigation bar to create visual separation",
+            "used_in": [
+                "Bottom control frame",
+                "Navigation frame",
+                "Counter label background"
+            ]
+        },
+        "disabled": {
+            "hex": "#1e1e1e",
+            "name": "Almost Black",
+            "description": "Background for disabled/read-only fields",
+            "used_in": [
+                "Artist field (read-only)",
+                "Decade field (calculated)",
+                "Duration field (read-only)"
+            ]
+        }
+    },
+    "foregrounds": {
+        "white": {
+            "hex": "#ffffff",
+            "name": "Pure White",
+            "description": "Primary text color for high contrast on dark backgrounds",
+            "used_in": [
+                "Most labels and text",
+                "Button text",
+                "Entry field text",
+                "Status bar text"
+            ]
+        },
+        "light_gray": {
+            "hex": "#cccccc",
+            "name": "Light Gray",
+            "description": "Secondary text color for less important information",
+            "used_in": [
+                "Database selection dialog subtitle"
+            ]
+        },
+        "medium_gray": {
+            "hex": "#6c757d",
+            "name": "Medium Gray",
+            "description": "Muted text color for disabled elements and inactive states",
+            "used_in": [
+                "Disabled field text",
+                "'NOT DONE' status label",
+                "Inactive indicators"
+            ]
+        }
+    },
+    "status": {
+        "success": {
+            "hex": "#28a745",
+            "name": "Success Green",
+            "description": "Indicates successful validation, correct state, or safe actions",
+            "used_in": [
+                "Test database button (safe option)",
+                "Test database status bar",
+                "'DONE' status indicator",
+                "'Genres Match' label",
+                "'ISRC Match' label",
+                "'File OK' label",
+                "Correct file path background"
+            ]
+        },
+        "danger": {
+            "hex": "#dc3545",
+            "name": "Danger Red",
+            "description": "Indicates errors, warnings, or dangerous actions",
+            "used_in": [
+                "Live database button (caution)",
+                "Live database status bar",
+                "Error messages",
+                "Incorrect file path background"
+            ]
+        },
+        "warning": {
+            "hex": "#fd7e14",
+            "name": "Warning Orange",
+            "description": "Indicates warnings or mismatches that need attention",
+            "used_in": [
+                "'Genre Mismatch' label",
+                "'ISRC Mismatch' label"
+            ]
+        },
+        "error_background": {
+            "hex": "#662222",
+            "name": "Dark Red",
+            "description": "Background color for fields with validation errors or mismatches",
+            "used_in": [
+                "Genre field when genres don't match",
+                "Fields with validation errors",
+                "Required fields that are empty",
+                "Fields with mismatched values"
+            ]
+        }
+    },
+    "buttons": {
+        "active": {
+            "hex": "#4c5052",
+            "name": "Slate Gray",
+            "description": "Button background when hovered or active",
+            "used_in": [
+                "TTK button hover state"
+            ]
+        },
+        "disabled": {
+            "hex": "#555555",
+            "name": "Dim Gray",
+            "description": "Button background when disabled",
+            "used_in": [
+                "TTK button disabled state"
+            ]
+        }
+    }
+}

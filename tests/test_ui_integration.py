@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch, ANY
 import sys
 import threading
+from contextlib import ExitStack
 
 from src.ui.app import DatabaseEditor
 from src.models.song import Song, SongID3
@@ -17,28 +18,51 @@ def no_threads():
 @pytest.fixture
 def mock_tk():
     """Patches all tkinter widgets used in app.py"""
-    with patch('src.ui.app.Tk'), \
-         patch('src.ui.app.Toplevel'), \
-         patch('src.ui.app.Label'), \
-         patch('src.ui.app.Button'), \
-         patch('src.ui.app.Entry') as MockEntry, \
-         patch('src.ui.app.Frame'), \
-         patch('src.ui.app.ttk.Style'), \
-         patch('src.ui.app.ttk.Label'), \
-         patch('src.ui.app.ttk.Button') as MockTTKButton, \
-         patch('src.ui.app.Combobox') as MockCombo, \
-         patch('src.ui.app.messagebox') as MockMB:
-         
-        # Setup Entry widget behavior to behave like a dict for get/delete/insert
-        # accessing them via app.texts_db["field"]
-        MockEntry.return_value.get.return_value = ""
+    with ExitStack() as stack:
+        mocks = {}
         
-        yield {
-            "Entry": MockEntry,
-            "Button": MockTTKButton,
-            "MessageBox": MockMB,
-            "Combobox": MockCombo
-        }
+        # Global / Tkinter
+        stack.enter_context(patch('src.ui.app.Tk'))
+        stack.enter_context(patch('tkinter.Toplevel'))
+        stack.enter_context(patch('tkinter.Frame'))
+        stack.enter_context(patch('tkinter.Text'))
+        stack.enter_context(patch('tkinter.Scrollbar'))
+        stack.enter_context(patch('tkinter.ttk.Treeview'))
+        stack.enter_context(patch('tkinter.ttk.PanedWindow'))
+        stack.enter_context(patch('tkinter.ttk.Style'))
+        
+        # App Widgets
+        stack.enter_context(patch('src.ui.app.Toplevel'))
+        stack.enter_context(patch('src.ui.app.Label'))
+        stack.enter_context(patch('src.ui.app.Button'))
+        mocks['Entry'] = stack.enter_context(patch('src.ui.app.Entry'))
+        stack.enter_context(patch('src.ui.app.Frame'))
+        stack.enter_context(patch('src.ui.app.ttk.Style'))
+        stack.enter_context(patch('src.ui.app.ttk.Label'))
+        
+        # Mapped Mocks
+        mocks['Button'] = stack.enter_context(patch('src.ui.app.ttk.Button'))
+        mocks['Combobox'] = stack.enter_context(patch('src.ui.app.Combobox'))
+        mocks['MessageBox'] = stack.enter_context(patch('src.ui.app.messagebox'))
+        mocks['ErrorHandler'] = stack.enter_context(patch('src.ui.app.ErrorHandler'))
+        
+        # Utils
+        stack.enter_context(patch('src.utils.error_handler.ErrorHandler'))
+        
+        # ErrorLogViewer Specifics (to handle late imports)
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.Toplevel'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.Frame'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.Label'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.Button'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.Text'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.Scrollbar'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.ttk.Treeview'))
+        stack.enter_context(patch('src.ui.dialogs.error_log_viewer.ttk.PanedWindow'))
+
+        # Setup Entry widget behavior
+        mocks['Entry'].return_value.get.return_value = ""
+        
+        yield mocks
 
 @pytest.fixture
 def mock_app_deps(mock_config):
@@ -143,9 +167,16 @@ def app(mock_tk, mock_app_deps):
         app.song.duration = 180.0
         app.song.location_local = "local.mp3"
         app.song.location_correct = "local.mp3"
+        app.song.decade = "2000s"
+        app.song.genre_02_name = "Rock"
+        app.song.genre_03_name = "Jazz"
+        app.song.genre_04_id = 1
+        app.song.genre_04_name = "2000s"
         
         app.id3 = MagicMock(spec=Song)
         app.id3.error = "No error"
+        app.id3.artist = "Artist"
+        app.id3.title = "Title"
         app.id3.genres_all = "Pop"
         app.id3.isrc = "US123"
         app.id3.duration = 180.0
@@ -153,6 +184,11 @@ def app(mock_tk, mock_app_deps):
         app.id3.composer = "Composer"
         app.id3.publisher = "Publisher"
         app.id3.year = 2000
+        
+        # Mock Validation to pass by default
+        app.validator = MagicMock()
+        app.validator.validate.return_value.is_valid = True
+        app.validator.validate.return_value.issues = []
         
         return app
 
@@ -174,22 +210,25 @@ def test_gather_data_from_ui(app):
     assert app.song.year == 2021
 
 
-def test_save_song_validation_failure(app, mock_tk):
-    sync_inputs(app, "artist", "Artist")
-    sync_inputs(app, "year", "2000")
-    sync_inputs(app, "genre", "Pop")
-    sync_inputs(app, "isrc", "US123")
-    sync_inputs(app, "title", "") 
-    app.song.title = "" 
-    app.id3.artist = "Artist"
-    app.id3.year = 2000
-    app.id3.genres_all = "Pop"
-    
-    with patch('src.models.song.Song.check_genre', return_value=True), \
-         patch('src.models.song.Song.get_genre_id', return_value=1):
-        app.save_song(False)
-        args = mock_tk["MessageBox"].showwarning.call_args[0]
-        assert "Title" in args[1] or "'title' not set" in args[1]
+    def test_save_song_validation_failure(app, mock_tk):
+        """Test blocking save when validation fails."""
+        # Override validation to fail
+        issue = MagicMock()
+        issue.message = "Title is required"
+        app.validator.validate.return_value.is_valid = False
+        app.validator.validate.return_value.issues = [issue]
+
+        sync_inputs(app, "artist", "Artist")
+        sync_inputs(app, "year", "2000")
+        sync_inputs(app, "genre", "Pop")
+        sync_inputs(app, "isrc", "US123")
+        sync_inputs(app, "title", "") 
+        
+        with patch('src.models.song.Song.check_genre', return_value=True), \
+             patch('src.models.song.Song.get_genre_id', return_value=1):
+            app.save_song(False)
+            
+        mock_tk["ErrorHandler"].show_warning.assert_called_with("Title is required")
 
 def test_save_song_success(app, mock_app_deps, mock_tk):
     sync_inputs(app, "artist", "Artist")
@@ -214,10 +253,7 @@ def test_save_song_success(app, mock_app_deps, mock_tk):
          patch('src.models.song.Song.get_genre_id', return_value=1):
         app.save_song(False)
     
-    if mock_tk["MessageBox"].showwarning.called:
-         # Ignore if warning is about something irrelevant via strict mocking, but here we expect clean run
-         # If path check activates unexpectedly, it fails here
-         # But app.song.location_local == correct in fixture
+    if mock_tk["ErrorHandler"].show_warning.called:
          pass
          
     mock_app_deps["db"].update_song_fields.assert_called()
@@ -240,6 +276,7 @@ def test_save_song_bad_path_standard_genre(app, mock_tk, mock_app_deps):
     
     app.texts_db["genre"].get.return_value = "Country"
     app.texts_id3["genre"].get.return_value = "Country"
+    app.song.genre_01_name = "Country"
     sync_inputs(app, "isrc", "US123")
     
     # Setup Paths
@@ -261,8 +298,8 @@ def test_save_song_bad_path_standard_genre(app, mock_tk, mock_app_deps):
          patch('src.ui.app.app_config', mock_config_instance):
         app.save_song(False)
         
-    # Verify Warning Exists for "Wrong Folder"
-    warnings = [call[0][1] for call in mock_tk["MessageBox"].showwarning.call_args_list]
+    # Verify Warning for "Wrong Folder"
+    warnings = [call[0][0] for call in mock_tk["ErrorHandler"].show_warning.call_args_list]
     assert any("wrong folder" in w for w in warnings), f"Warnings found: {warnings}"
     
     mock_app_deps["db"].update_song_fields.assert_not_called()
@@ -282,6 +319,7 @@ def test_save_song_unknown_genre(app, mock_tk, mock_app_deps):
     sync_inputs(app, "year", "2000")
     app.texts_db["genre"].get.return_value = "Mystery"
     app.texts_id3["genre"].get.return_value = "Mystery"
+    app.song.genre_01_name = "Mystery"
     sync_inputs(app, "isrc", "US123")
     
     # Patch Config (Mystery is not in any list)
@@ -300,7 +338,7 @@ def test_save_song_unknown_genre(app, mock_tk, mock_app_deps):
         app.save_song(False)
         
     # Verify Warning for "Not Defined"
-    warnings = [call[0][1] for call in mock_tk["MessageBox"].showwarning.call_args_list]
+    warnings = [call[0][0] for call in mock_tk["ErrorHandler"].show_warning.call_args_list]
     assert any("not defined" in w for w in warnings), f"Warnings found: {warnings}"
     
     mock_app_deps["db"].update_song_fields.assert_not_called()
@@ -326,7 +364,7 @@ def test_save_song_bad_path_special_genre(app, mock_tk, mock_app_deps):
         app.save_song(False)
         
     # Verify NO folder warning
-    warnings = [call[0][1] for call in mock_tk["MessageBox"].showwarning.call_args_list]
+    warnings = [call[0][0] for call in mock_tk["ErrorHandler"].show_warning.call_args_list]
     if any("wrong folder" in w for w in warnings):
         pytest.fail(f"Unexpected folder warning found: {warnings}")
             
@@ -390,7 +428,7 @@ def test_query_flow(app, mock_tk):
         # Verify thread started
         MockThread.assert_called()
 
-def test_rename_song(app, mock_app_deps):
+def test_rename_song(app, mock_app_deps, mock_tk):
     """Test rename flow (F6)."""
     # Setup conditions
     app.song.location_local = "z:\\old.mp3"
@@ -408,3 +446,51 @@ def test_rename_song(app, mock_app_deps):
         
         args = mock_app_deps["db"].update_song_filename.call_args[0]
         assert "b:\\new.mp3" in args[1]
+        
+        # Verify Success Message
+        mock_tk["ErrorHandler"].show_info.assert_called_with("File renamed successfully!")
+
+def test_rename_song_move_failure(app, mock_app_deps, mock_tk):
+    """Test rename rollback when file move fails."""
+    app.song.location_local = "z:\\old.mp3"
+    app.song.location_correct = "z:\\new.mp3"
+    
+    with patch('shutil.move', side_effect=PermissionError("Locked")), \
+         patch('src.ui.app.makedirs'), \
+         patch('src.ui.app.path.exists', return_value=False):
+         
+        app.song_rename()
+        
+        # Verify DB updated then rolled back
+        # DB calls: 1. update to new, 2. update to old
+        db_calls = mock_app_deps["db"].update_song_filename.call_args_list
+        assert len(db_calls) == 2
+        assert "b:\\new.mp3" in db_calls[0][0][1] # Initial update
+        assert "b:\\old.mp3" in db_calls[1][0][1] # Rollback
+        
+        # Verify Error Dialog shown
+        mock_tk["ErrorHandler"].show_error.assert_called()
+        args = mock_tk["ErrorHandler"].show_error.call_args[0]
+        assert "Rename Failed" in args[0]
+
+def test_rename_song_rollback_failure(app, mock_app_deps, mock_tk):
+    """Test critical error when rollback fails."""
+    app.song.location_local = "z:\\old.mp3"
+    app.song.location_correct = "z:\\new.mp3"
+    
+    # Mock DB to succeed first time, then fail
+    mock_app_deps["db"].update_song_filename.side_effect = [None, Exception("DB Down")]
+    
+    with patch('shutil.move', side_effect=PermissionError("Locked")), \
+         patch('src.ui.app.makedirs'), \
+         patch('src.ui.app.path.exists', return_value=False):
+         
+        app.song_rename()
+        
+        # Verify Critical Error
+        mock_tk["ErrorHandler"].show_critical.assert_called()
+        args = mock_tk["ErrorHandler"].show_critical.call_args[0]
+        assert "CRITICAL" in args[0]
+        assert "DB thinks it is at" in args[1]
+
+

@@ -1,3 +1,4 @@
+from src.utils.error_handler import ErrorHandler
 from pyodbc import connect
 
 
@@ -68,18 +69,19 @@ class Database:
         self._execute(query, tuple(values))
 
     def delete_song(self, song_id):
-        print(f"Deleting song with ID: {song_id}")
+        ErrorHandler.log_info(f"Deleting song with ID: {song_id}")
         query = f"DELETE FROM {self.table_name} WHERE AUID = ?"
         self._execute(query, (song_id,))
 
-    def fetch_songs(self, field, value, exact_match):
+    def fetch_songs(self, field, value, exact_match, limit=2000):
         if exact_match:
-            query = f"SELECT * FROM {self.table_name} WHERE {field} = ?"
+            query = f"SELECT TOP {limit} * FROM {self.table_name} WHERE {field} = ?"
             return self._fetch(query, (value,))
         else:
-            query = f"SELECT * FROM {self.table_name} WHERE {field} LIKE ?"
+            query = f"SELECT TOP {limit} * FROM {self.table_name} WHERE {field} LIKE ?"
             return self._fetch(query, (f'%{value}%',))
 
-    def fetch_all_songs(self):
-        query = f"SELECT * FROM {self.table_name}"
+    def fetch_all_songs(self, limit=2000):
+        # Limit to 2000 to prevent memory exhaustion on large databases
+        query = f"SELECT TOP {limit} * FROM {self.table_name}"
         return self._fetch(query)

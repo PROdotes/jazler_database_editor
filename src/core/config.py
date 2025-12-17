@@ -2,6 +2,7 @@ import json
 import sys
 from os import path
 from typing import Dict, Any, Optional
+from src.utils.error_handler import ErrorHandler
 
 # Determine base directory for config file
 # When running as PyInstaller EXE, use the directory containing the EXE
@@ -45,12 +46,24 @@ class Config:
         try:
             with open(CONFIG_FILE, 'r') as f:
                 loaded = json.load(f)
-                # Ensure new keys exist if loading old config
-                if "genre_rules" not in loaded:
-                    loaded["genre_rules"] = DEFAULT_CONFIG["genre_rules"]
-                return loaded
+                # Merge with defaults: any missing keys will use default values
+                merged = DEFAULT_CONFIG.copy()
+                merged.update(loaded)
+                
+                # Handle nested dicts (like genre_rules) - merge them too
+                if "genre_rules" in loaded:
+                    default_genre_rules = DEFAULT_CONFIG["genre_rules"].copy()
+                    default_genre_rules.update(loaded["genre_rules"])
+                    merged["genre_rules"] = default_genre_rules
+                
+                if "drive_map" in loaded:
+                    default_drive_map = DEFAULT_CONFIG["drive_map"].copy()
+                    default_drive_map.update(loaded["drive_map"])
+                    merged["drive_map"] = default_drive_map
+                
+                return merged
         except Exception as e:
-            print(f"Error loading config: {e}")
+            ErrorHandler.log_silent(e, "Loading config")
             return DEFAULT_CONFIG.copy()
 
     def reload(self):
@@ -71,7 +84,7 @@ class Config:
                 json.dump(current_config, f, indent=4)
             self._data = current_config
         except Exception as e:
-            print(f"Error saving last query: {e}")
+            ErrorHandler.log_silent(e, "Saving last query")
 
     def save_last_position(self, position: int):
         try:
@@ -93,7 +106,7 @@ class Config:
                 json.dump(current_config, f, indent=4)
             self._data = current_config
         except Exception as e:
-            print(f"Error saving position: {e}")
+            ErrorHandler.log_silent(e, "Saving last position")
 
     def load_last_query(self) -> Optional[Dict[str, str]]:
         # Always read fresh for query load just in case

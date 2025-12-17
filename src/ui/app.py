@@ -13,6 +13,10 @@ from src.models.song import Song, SongID3
 from src.utils.audio import AudioMetadata
 from src.core.database import Database
 from src.core.config import app_config
+from src.ui.theme import theme
+from src.utils.error_handler import ErrorHandler, ErrorSeverity
+from src.validators.song_validator import SongValidator
+from src.validators.validation_result import ValidationLevel
 
 
 class DatabaseEditor(Tk):
@@ -32,6 +36,9 @@ class DatabaseEditor(Tk):
         self.decade_map = self.db.generate_decade_map()
         self.reverse_decade_map = {v: k for k, v in self.decade_map.items()}
         self.tempo_map = self.db.generate_tempo_map()
+        
+        # Validator
+        self.validator = SongValidator(self.genre_map)
 
         # State Variables
         self.song = None
@@ -51,7 +58,7 @@ class DatabaseEditor(Tk):
                 else:
                     self.position = saved_pos
             except (ValueError, TypeError) as e:
-                print(f"Error loading position: {e}")
+                ErrorHandler.log_silent(e, "Loading last position")
                 self.position = 0
         else:
             self.position = 0
@@ -69,14 +76,14 @@ class DatabaseEditor(Tk):
             # Load song at saved position (or 0 if no saved position)
             self.get_song(0)  # Delta of 0 means stay at current position
         else:
-            messagebox.showinfo("Info", "No songs found for initial query.")
+            ErrorHandler.show_info("No songs found for initial query.")
 
     def ask_database_mode(self):
         """Ask user which database to use. Defaults to Test (safer option)."""
         start_root = Toplevel()
         start_root.withdraw()
         start_root.title("Select Database")
-        start_root.configure(bg="#2b2b2b")
+        start_root.configure(bg=theme.BG_DARK)
         start_root.resizable(False, False)
         
         # Center the window
@@ -99,32 +106,32 @@ class DatabaseEditor(Tk):
             start_root.destroy()
         
         # Message
-        msg_frame = Frame(start_root, bg="#2b2b2b", pady=20)
+        msg_frame = Frame(start_root, bg=theme.BG_DARK, pady=20)
         msg_frame.pack(fill="both", expand=True)
         
         Label(msg_frame, text="Select Database Mode", 
-              bg="#2b2b2b", fg="white", 
+              bg=theme.BG_DARK, fg=theme.FG_WHITE, 
               font=("Segoe UI", 12, "bold")).pack(pady=(10, 5))
         
         Label(msg_frame, text="Which database do you want to use?", 
-              bg="#2b2b2b", fg="#cccccc", 
+              bg=theme.BG_DARK, fg=theme.FG_LIGHT_GRAY, 
               font=("Segoe UI", 9)).pack(pady=5)
         
         # Buttons
-        btn_frame = Frame(start_root, bg="#2b2b2b", pady=10)
+        btn_frame = Frame(start_root, bg=theme.BG_DARK, pady=10)
         btn_frame.pack(fill="x")
         
         # Test button (default - left position, will be focused)
         btn_test = Button(btn_frame, text="Test Database\n(Databases - Copy)", 
                          command=select_test, width=18, height=3,
-                         bg="#28a745", fg="white", font=("Segoe UI", 10, "bold"),
+                         bg=theme.STATUS_SUCCESS, fg=theme.FG_WHITE, font=("Segoe UI", 10, "bold"),
                          relief="raised", bd=3, cursor="hand2")
         btn_test.pack(side="left", padx=(40, 10))
         
         # Live button (right position)
         btn_live = Button(btn_frame, text="⚠️ LIVE Database ⚠️\n(Databases)", 
                          command=select_live, width=18, height=3,
-                         bg="#dc3545", fg="white", font=("Segoe UI", 10, "bold"),
+                         bg=theme.STATUS_DANGER, fg=theme.FG_WHITE, font=("Segoe UI", 10, "bold"),
                          relief="raised", bd=3, cursor="hand2")
         btn_live.pack(side="left", padx=(10, 40))
         
@@ -148,14 +155,14 @@ class DatabaseEditor(Tk):
         except Exception as e:
             root = Tk()
             root.withdraw()
-            messagebox.showerror("Connection Error", f"Could not connect to Database at:\n{self.file}\n\nError: {e}")
+            ErrorHandler.show_critical(f"Could not connect to Database at:\n{self.file}\n\nError: {e}")
             sys.exit(1)
 
     def on_closing(self):
         try:
             app_config.save_last_position(self.position)
         except Exception as e:
-            print(f"Error saving state: {e}")
+            ErrorHandler.log_silent(e, "Saving app state")
         self.destroy()
 
     def setup_ui(self):
@@ -164,26 +171,27 @@ class DatabaseEditor(Tk):
         self.attributes('-topmost', True)
         self.after_idle(self.attributes, '-topmost', False)
         self.title(f"Database Editor - [{'LIVE' if self.use_live else 'TEST'}]")
-        self.config(bg="#2b2b2b")
+        self.config(bg=theme.BG_DARK)
 
         # Styles (Dark Mode)
         style = ttk.Style()
         try:
              style.theme_use('clam')
-        except:
-             pass 
+        except Exception as e:
+             ErrorHandler.log_silent(e, "Setting theme 'clam'")
+             pass  # Theme not available, use default 
         
         # Configure Dark Theme Colors
-        BG_DARK = "#2b2b2b"
-        BG_LIGHTER = "#3c3f41"
-        FG_WHITE = "#ffffff"
+        BG_DARK = theme.BG_DARK
+        BG_LIGHTER = theme.BG_LIGHTER
+        FG_WHITE = theme.FG_WHITE
         
         style.configure("TFrame", background=BG_DARK)
         style.configure("TLabel", background=BG_DARK, foreground=FG_WHITE)
         style.configure("Bold.TLabel", background=BG_DARK, foreground=FG_WHITE, font=("Segoe UI", 9, "bold"))
         
         style.configure("TButton", background=BG_LIGHTER, foreground=FG_WHITE, borderwidth=1, focuscolor=BG_DARK)
-        style.map("TButton", background=[("active", "#4c5052"), ("disabled", "#555555")])
+        style.map("TButton", background=[("active", theme.BTN_ACTIVE), ("disabled", theme.BTN_DISABLED)])
 
         # Main Container
         main_frame = Frame(self, bg=BG_DARK)
@@ -191,9 +199,9 @@ class DatabaseEditor(Tk):
 
         # 1. Status Bar
         status_text = "⚠️ CAUTION: LIVE DATABASE ⚠️" if self.use_live else "SAFE MODE: Test Database"
-        status_bg = "#dc3545" if self.use_live else "#28a745"
+        status_bg = theme.STATUS_DANGER if self.use_live else theme.STATUS_SUCCESS
         
-        lbl_status = Label(main_frame, text=status_text, bg=status_bg, fg="white", 
+        lbl_status = Label(main_frame, text=status_text, bg=status_bg, fg=theme.FG_WHITE, 
                           font=("Segoe UI", 11, "bold"), pady=8)
         lbl_status.grid(row=0, column=0, columnspan=5, sticky="ew", pady=(0, 15))
 
@@ -250,18 +258,18 @@ class DatabaseEditor(Tk):
 
             # Disabled styling
             if field in ["decade", "duration", "artist"]:
-                 self.texts_db[field].config(state="disabled", disabledbackground="#1e1e1e", disabledforeground="#6c757d")
+                 self.texts_db[field].config(state="disabled", disabledbackground=theme.BG_DISABLED, disabledforeground=theme.FG_MEDIUM_GRAY)
                  if field != "artist":
-                     self.texts_id3[field].config(state="disabled", disabledbackground="#1e1e1e", disabledforeground="#6c757d")
+                     self.texts_id3[field].config(state="disabled", disabledbackground=theme.BG_DISABLED, disabledforeground=theme.FG_MEDIUM_GRAY)
 
             row_count += 1
 
         # Status Label for Done (Added to ID3 column)
-        self.lbl_done_status = Label(main_frame, text="[ NOT DONE ]", bg=BG_DARK, fg="#6c757d", font=("Segoe UI", 10, "bold"))
+        self.lbl_done_status = Label(main_frame, text="[ NOT DONE ]", bg=BG_DARK, fg=theme.FG_MEDIUM_GRAY, font=("Segoe UI", 10, "bold"))
         self.lbl_done_status.grid(row=row_count, column=3, sticky="w", padx=2, pady=5)
 
         # 4. Control Bar
-        control_frame = Frame(self, bg="#1e1e1e", pady=10, padx=20) # Slightly darker for visual anchor
+        control_frame = Frame(self, bg=theme.BG_CONTROL_BAR, pady=10, padx=20) # Slightly darker for visual anchor
         control_frame.pack(fill="x", side="bottom")
 
         # Left: Lookup
@@ -275,7 +283,7 @@ class DatabaseEditor(Tk):
         self.button_discog.pack(side="left", padx=2)
 
         # Center: Navigation
-        nav_frame = Frame(control_frame, bg="#1e1e1e")
+        nav_frame = Frame(control_frame, bg=theme.BG_CONTROL_BAR)
         nav_frame.pack(side="left", padx=40)
         
         self.button_jump = ttk.Button(nav_frame, text="Jump (F11)", width=6, command=lambda: self.get_song(None))
@@ -286,7 +294,7 @@ class DatabaseEditor(Tk):
         self.text_jump.insert(0, "1")
         self.text_jump.pack(side="left", padx=5)
         
-        self.label_counter = Label(nav_frame, text="0/0", bg="#1e1e1e", fg="white", font=("Segoe UI", 9))
+        self.label_counter = Label(nav_frame, text="0/0", bg=theme.BG_CONTROL_BAR, fg=theme.FG_WHITE, font=("Segoe UI", 9))
         self.label_counter.pack(side="left", padx=5)
 
         self.button_previous = ttk.Button(nav_frame, text="< Prev (F9)", width=8, command=lambda: self.get_song(-1))
@@ -320,6 +328,24 @@ class DatabaseEditor(Tk):
         
         self.lbl_stat_isrc = Label(footer_frame, text="ISRC Status", bg=BG_DARK, fg=FG_WHITE, font=font_status)
         self.lbl_stat_isrc.pack(side="left", expand=True)
+        
+        # Error badge (clickable)
+        self.error_badge = Label(footer_frame, text="0 Errors", bg=BG_DARK, 
+                                fg=theme.FG_MEDIUM_GRAY, font=("Segoe UI", 9, "underline"), 
+                                cursor="hand2", padx=10, relief="ridge", bd=1)
+        self.error_badge.pack(side="right", padx=5)
+        self.error_badge.bind("<Button-1>", lambda e: self.show_error_log())
+        
+        # Hover effect for error badge
+        def on_enter(e):
+            self.error_badge.config(relief="raised")
+        def on_leave(e):
+            self.error_badge.config(relief="ridge")
+        self.error_badge.bind("<Enter>", on_enter)
+        self.error_badge.bind("<Leave>", on_leave)
+        
+        # Set up ErrorHandler callback to update badge
+        ErrorHandler.set_error_callback(self.update_error_badge)
 
         # Key Bindings
         self.bind("<F1>", lambda event: self.query_db())
@@ -349,8 +375,9 @@ class DatabaseEditor(Tk):
         for btn in buttons:
             try:
                 btn.state(state_val)
-            except:
-                pass
+            except Exception as e:
+                ErrorHandler.log_silent(e, "Updating button state")
+                pass  # Button state change failed, continue
 
     def query_execute(self, field_in, match, query, save=True):
         if save:
@@ -377,16 +404,17 @@ class DatabaseEditor(Tk):
         last_query = app_config.load_last_query()
         if last_query:
             try:
-                print(f"Loading last query: {last_query}")
+                ErrorHandler.log_info(f"Loading last query: {last_query}")
                 return self.query_execute(last_query["field"], last_query["match"], last_query["value"], save=False)
             except Exception as e:
-                print(f"Error executing last query: {e}")
+                ErrorHandler.log_silent(e, "Restoring last query")
                 
+        ErrorHandler.show_info("No previous query found.\nLoading first 2000 songs to save memory.")
         return self.db.fetch_all_songs()
 
     def update_fields(self):
         if self.id3 is None:
-            choice = messagebox.askyesno("Error", "No song selected! Delete database entry?")
+            choice = ErrorHandler.ask_yes_no("No song selected! Delete database entry?", "Error")
             if choice:
                 self.db.delete_song(self.song_query[self.position][0])
                 self.song_query = self.get_initial_query()
@@ -422,9 +450,9 @@ class DatabaseEditor(Tk):
 
         # Done Status Check
         if getattr(self.id3, "done", False):
-             self.lbl_done_status.config(text="✔ DONE", fg="#28a745")
+             self.lbl_done_status.config(text="✔ DONE", fg=theme.STATUS_SUCCESS)
         else:
-             self.lbl_done_status.config(text="[ NOT DONE ]", fg="#6c757d")
+             self.lbl_done_status.config(text="[ NOT DONE ]", fg=theme.FG_MEDIUM_GRAY)
 
         self._update_status_indicators()
 
@@ -452,36 +480,36 @@ class DatabaseEditor(Tk):
     def _update_status_indicators(self):
         # Genre Validation
         test_genre = Song.check_genre(self.song.genres_all, self.id3.genres_all)
-        bg_genre = "#3c3f41" if test_genre else "#662222"
+        bg_genre = theme.BG_LIGHTER if test_genre else theme.STATUS_ERROR_BG
         self.texts_db["genre"].config(bg=bg_genre)
         self.texts_id3["genre"].config(bg=bg_genre)
         
         if test_genre:
-             self.lbl_stat_genre.config(text="✔ Genres Match", fg="#28a745")
+             self.lbl_stat_genre.config(text="✔ Genres Match", fg=theme.STATUS_SUCCESS)
         else:
-             self.lbl_stat_genre.config(text="⚠️ Genre Mismatch", fg="#fd7e14")
+             self.lbl_stat_genre.config(text="⚠️ Genre Mismatch", fg=theme.STATUS_WARNING)
             
         # ISRC Validation
         isrc_match = str(self.song.isrc) == str(self.id3.isrc)
         
         # Override BG for empty ISRC to be normal (not error)
         if not self.song.isrc and not self.id3.isrc:
-            self.texts_db["isrc"].config(bg="#3c3f41")
-            self.texts_id3["isrc"].config(bg="#3c3f41")
+            self.texts_db["isrc"].config(bg=theme.BG_LIGHTER)
+            self.texts_id3["isrc"].config(bg=theme.BG_LIGHTER)
             
         if isrc_match:
-             self.lbl_stat_isrc.config(text="✔ ISRC Match", fg="#28a745")
+             self.lbl_stat_isrc.config(text="✔ ISRC Match", fg=theme.STATUS_SUCCESS)
         else:
-             self.lbl_stat_isrc.config(text="⚠️ ISRC Mismatch", fg="#fd7e14")
+             self.lbl_stat_isrc.config(text="⚠️ ISRC Mismatch", fg=theme.STATUS_WARNING)
             
         # Count & File Status
         self.label_counter.config(text=f"{self.position + 1}/{len(self.song_query)}")
         
         err = self.id3.error
         if err == "No error":
-            self.lbl_stat_file.config(text="✔ File OK", fg="#28a745")
+            self.lbl_stat_file.config(text="✔ File OK", fg=theme.STATUS_SUCCESS)
         else:
-            self.lbl_stat_file.config(text=f"❌ {err}", fg="#dc3545")
+            self.lbl_stat_file.config(text=f"❌ {err}", fg=theme.STATUS_DANGER)
             
         self.text_jump.delete(0, END)
         self.text_jump.insert(0, str(self.position + 1))
@@ -490,24 +518,64 @@ class DatabaseEditor(Tk):
         clean_loc = (self.song.location_local + "    <--->    " + self.song.location_correct).replace("z:\\songs\\", "")
         self.label_filename.config(text=clean_loc)
         
-        bg_file = "#28a745" if self.song.location_local.lower() == self.song.location_correct.lower() else "#dc3545"
+        bg_file = theme.STATUS_SUCCESS if self.song.location_local.lower() == self.song.location_correct.lower() else theme.STATUS_DANGER
         self.label_filename.config(bg=bg_file)
 
     def song_rename(self):
+        # 0. Prepare paths
         location_db = self.song.location_correct.replace("z:", "b:")
-        self.db.update_song_filename(self.song.id, location_db)
-        if not path.exists(self.song.location_correct):
-            makedirs(path.dirname(self.song.location_correct), exist_ok=True)
-        shutil.move(self.song.location_local, self.song.location_correct)
-        self.song.location_local = self.song.location_correct
-
+        old_location_db = self.song.location_local.replace("z:", "b:")
+        
         try:
-             self.song_query[self.position][20] = self.song.location_correct
-        except TypeError:
-             # Tuples are immutable
-             temp_list = list(self.song_query[self.position])
-             temp_list[20] = self.song.location_correct
-             self.song_query[self.position] = tuple(temp_list)
+            # 1. Update Database First
+            # If this fails, file stays where it is. Safe.
+            self.db.update_song_filename(self.song.id, location_db)
+            
+            # 2. Prepare destination directory
+            if not path.exists(self.song.location_correct):
+                makedirs(path.dirname(self.song.location_correct), exist_ok=True)
+            
+            # 3. Move File
+            shutil.move(self.song.location_local, self.song.location_correct)
+            
+            # 4. Update in-memory state
+            self.song.location_local = self.song.location_correct
+            
+            # Update cache tuple (handling immutability)
+            try:
+                 self.song_query[self.position][20] = self.song.location_correct
+            except TypeError:
+                 temp_list = list(self.song_query[self.position])
+                 temp_list[20] = self.song.location_correct
+                 self.song_query[self.position] = tuple(temp_list)
+
+            # 5. Success Notification
+            self.update_fields()
+            ErrorHandler.log_info(f"Renamed song {self.song.id}")
+            ErrorHandler.show_info("File renamed successfully!")
+
+        except (OSError, PermissionError, shutil.Error) as e:
+            # File Move Failed!
+            # ROLLBACK Database
+            try:
+                self.db.update_song_filename(self.song.id, old_location_db)
+                ErrorHandler.log_info("Database rolled back after failed file move.")
+            except Exception as rollback_error:
+                # Fatal! Database thinks file is moved, but it isn't.
+                ErrorHandler.show_critical(
+                    "CRITICAL ERROR: Data Corruption!",
+                    f"File move failed AND rollback failed!\n\nFile is at: {self.song.location_local}\nDB thinks it is at: {self.song.location_correct}\n\nError: {rollback_error}"
+                )
+                return
+
+            ErrorHandler.show_error(
+                "File Rename Failed",
+                f"Could not move file.\nDatabase change reverted.\n\nError: {e}"
+            )
+            
+        except Exception as e:
+            # Generic error (DB failure or other)
+            ErrorHandler.show_error("Rename Error", f"An unexpected error occurred:\n{e}")
 
     def _gather_data_from_ui(self):
         """Extracts data from UI widgets and updates self.song/self.id3 objects."""
@@ -545,103 +613,25 @@ class DatabaseEditor(Tk):
     def save_song(self, rename):
         self._gather_data_from_ui()
 
-        # Validation functions inside save_song to access self easily
-        def is_valid_attribute(value):
-            return value is not None and value != ""
-
-        def check_all():
-            attributes = ['artist', 'title', 'album', 'year', 'composer', 'publisher']
-            for attr in attributes:
-                if not is_valid_attribute(getattr(self.song, attr)):
-                    messagebox.showwarning("Warning", f"'{attr}' not set!")
-                    return False
-                # Original code logic: compare song vs id3
-                val_song = str(getattr(self.song, attr))
-                val_id3 = str(getattr(self.id3, attr))
-                
-                # Special handling for artist - check if ID3 starts with DB value
-                if attr == 'artist':
-                    if val_song and not val_id3.startswith(val_song):
-                        messagebox.showwarning("Warning", f"'{attr}' not the same!")
-                        return False
-                else:
-                    # Standard exact match for other fields
-                    if val_song != val_id3:
-                        messagebox.showwarning("Warning", f"'{attr}' not the same!")
-                        return False
-                        
-                if not self.song.isrc == self.id3.isrc:
-                    return False
-            return True
-
-        field_check = check_all()
-        year_check = True
-        if self.song.year == 0:
-            messagebox.showwarning("Warning", "Year not set!")
-            year_check = False
-
-
-        genre_id_check = True
-        genre_ids = self.song.genres_all.split(", ")
-        genre_ids = list(dict.fromkeys(genre_ids))
-        print(genre_ids)
-        
+        # Normalization
+        self.song.normalize_genres(self.genre_map[0])
+        # Update UI to reflect normalized genres
         self.texts_db["genre"].delete(0, END)
-        self.song.genres_all = Song.list_to_string(self.genre_map[0], genre_ids)
         self.texts_db["genre"].insert(0, self.song.genres_all)
         
-        genre_ids = genre_ids[:3]
-        for genre_id in genre_ids:
-            if genre_id not in self.genre_map.values():
-                messagebox.showwarning("Warning", f"Genre '{genre_id}' not found!")
-                genre_id_check = False
-                break
-                
-        genre_test = Song.check_genre(self.song.genres_all, self.id3.genres_all)
-        if not genre_test:
-            messagebox.showwarning("Warning", "Genres not the same!")
-            
-        genre_id_check = genre_id_check and genre_test
+        # Update internal IDs based on genres (needed for path validation and DB update)
+        self.song.update_genre_ids(self.reverse_genre_map, self.genre_map[0])
+
+        # Validation
+        validation_result = self.validator.validate(self.song, self.id3)
         
-        if genre_id_check:
-            self.song.genre_01_name = genre_ids[0]
-            self.song.genre_01_id = Song.get_genre_id(genre_ids[0], self.reverse_genre_map)
-            
-            if len(genre_ids) > 1:
-                self.song.genre_02_name = genre_ids[1]
-                self.song.genre_02_id = Song.get_genre_id(genre_ids[1], self.reverse_genre_map)
-            else:
-                self.song.genre_02_name = self.genre_map[0]
-                self.song.genre_02_id = 0
-                
-            if len(genre_ids) > 2:
-                self.song.genre_03_name = genre_ids[2]
-                self.song.genre_03_id = Song.get_genre_id(genre_ids[2], self.reverse_genre_map)
-            else:
-                self.song.genre_03_name = self.genre_map[0]
-                self.song.genre_03_id = 0
+        if not validation_result.is_valid:
+            if validation_result.issues:
+                # Show the blocking error (first one found)
+                ErrorHandler.show_warning(validation_result.issues[0].message)
+            return
 
-        path_check = True
-        if genre_id_check:
-             g1 = self.song.genre_01_name.lower()
-             rules = app_config.genre_rules
-
-             is_standard = g1 in rules.get("standard_subfolder", [])
-             is_special = (g1 in rules["path_overrides"] or 
-                           g1 in rules["no_year_subfolder"] or 
-                           g1 in rules["no_genre_subfolder"])
-
-             if not is_standard and not is_special:
-                  messagebox.showwarning("Warning", f"Genre '{self.song.genre_01_name}' is not defined in config rules!")
-                  path_check = False
-
-             is_path_correct = self.song.location_local.lower() == self.song.location_correct.lower()
-             if not is_path_correct:
-                 if is_standard:
-                      messagebox.showwarning("Warning", f"File is in the wrong folder!\nExpected: {self.song.location_correct}")
-                      path_check = False
-
-        if field_check and genre_id_check and year_check and path_check:
+        if True: # Validation Passed
             update_fields_dict = {
                 "fldTitle": self.song.title,
                 "fldAlbum": self.song.album,
@@ -659,10 +649,34 @@ class DatabaseEditor(Tk):
             if rename:
                  self.song_rename()
 
+            # Config Rules / Folder Validation
+            genre_name = self.song.genre_01_name.lower()
+            
+            std_sub = [g.lower() for g in app_config.genre_rules.get("standard_subfolder", [])]
+            
+            valid_genres = []
+            valid_genres.extend(std_sub)
+            valid_genres.extend([g.lower() for g in app_config.genre_rules.get("no_year_subfolder", [])])
+            valid_genres.extend([g.lower() for g in app_config.genre_rules.get("no_genre_subfolder", [])])
+            valid_genres.extend([g.lower() for g in app_config.genre_rules.get("path_overrides", {}).keys()])
+            
+            if genre_name not in valid_genres:
+                ErrorHandler.show_warning(f"Genre '{self.song.genre_01_name}' is not defined in config rules!")
+                return
+
+            if genre_name in std_sub:
+                if self.song.location_local.lower() != self.song.location_correct.lower():
+                     ErrorHandler.show_warning(
+                         f"File is in the wrong folder!\n\n"
+                         f"Current: {self.song.location_local}\n"
+                         f"Expected: {self.song.location_correct}"
+                     )
+                     return
+
             try:
                  self.db.update_song_fields(self.song.id, update_fields_dict)
             except Exception as e:
-                messagebox.showerror("Save Error", f"Could not save changes to database:\n{e}")
+                ErrorHandler.show_error(f"Could not save changes to database:\n{e}")
                 return
 
             AudioMetadata.tag_write(self.id3, self.song.location_local)
@@ -687,8 +701,8 @@ class DatabaseEditor(Tk):
             except IndexError:
                  pass
             except Exception as e:
-                print(f"Error refreshing after save: {e}")
-                
+                ErrorHandler.log_silent(e, "Refreshing song list")
+
         self.update_fields()
 
     def get_song(self, delta):
@@ -698,7 +712,7 @@ class DatabaseEditor(Tk):
         if delta is None:
             delta = 0
             test = self.text_jump.get().strip()
-            print("-" + test + "-")
+
             try:
                 self.position = int(test) - 1
             except ValueError:
@@ -724,7 +738,7 @@ class DatabaseEditor(Tk):
             data = Song.from_db_record(self.song_query[pos], self.genre_map, self.decade_map, self.tempo_map)
             self.after(0, self._finish_load_song, data)
         except Exception as e:
-            print(f"Error loading song: {e}")
+            ErrorHandler.log_silent(e, "Loading song data thread")
             self.after(0, self.toggle_controls, True)
 
     def _finish_load_song(self, data):
@@ -733,7 +747,7 @@ class DatabaseEditor(Tk):
             self.song, self.id3 = data
             self.update_fields()
         except Exception as e:
-            print(f"Error updating UI: {e}")
+            ErrorHandler.log_silent(e, "Updating UI with song data")
             # messagebox.showerror("UI Error", str(e)) # Optional
         finally:
             self.toggle_controls(True)
@@ -741,7 +755,7 @@ class DatabaseEditor(Tk):
     def query_db(self):
         window_query = Toplevel(self)
         window_query.title("Database query")
-        window_query.config(bg="#2b2b2b")
+        window_query.config(bg=theme.BG_DARK)
         
         dropdown_field = Combobox(window_query, values=["artist", "title", "album", "composer", "publisher", "year"])
         dropdown_field.grid(row=0, column=0, padx=5, pady=10)
@@ -751,7 +765,7 @@ class DatabaseEditor(Tk):
         dropdown_match.grid(row=0, column=1, padx=5, pady=10)
         dropdown_match.set("contains")
         
-        text_query = Entry(window_query, width=50, bg="#3c3f41", fg="white", insertbackground="white")
+        text_query = Entry(window_query, width=50, bg=theme.BG_LIGHTER, fg=theme.FG_WHITE, insertbackground=theme.FG_WHITE)
         text_query.grid(row=0, column=2, padx=5, pady=10)
         text_query.focus_set()
         
@@ -776,23 +790,53 @@ class DatabaseEditor(Tk):
     def _finish_query(self, results, window_sent):
         self.song_query = results
         if not self.song_query:
-            messagebox.showinfo("Info", "No results found.")
+            ErrorHandler.show_info("No results found.")
             window_sent.destroy()
             self.deiconify()
             self.toggle_controls(True)
             return
+
+        # Check if result was capped (limit is 2000 in database.py)
+        if len(self.song_query) >= 2000:
+             ErrorHandler.show_info("Query Result Capped\n\nShowing first 2000 records to save memory.\nPlease refine your search criteria if you need specific records.")
             
         self.position = 0
         self.toggle_controls(True) 
         self.get_song(0) 
         self.deiconify()
+    
+    def update_error_badge(self, count, color):
+        """Update error badge when errors occur."""
+        if count == 0:
+            self.error_badge.config(
+                text="0 Errors",
+                bg=theme.BG_DARK,
+                fg=theme.FG_MEDIUM_GRAY
+            )
+        else:
+            badge_bg = theme.STATUS_DANGER if color == "red" else theme.STATUS_WARNING
+            self.error_badge.config(
+                text=f"⚠ {count} Error{'s' if count != 1 else ''}",
+                bg=badge_bg,
+                fg=theme.FG_WHITE
+            )
+    
+    def show_error_log(self):
+        """Show error log viewer dialog."""
+        try:
+            from src.ui.dialogs.error_log_viewer import ErrorLogViewer
+            ErrorLogViewer(self).show()
+            ErrorHandler.clear_error_count()
+        except Exception as e:
+            ErrorHandler.show_error(f"Failed to open error log:\n{e}")
+            # print(f"Error log launch failed: {e}")
 
 
 def copy_text(text_1, text_2, end):
     text_2.delete(0, end)
     text_2.insert(0, text_1.get())
-    text_1.config(bg="#3c3f41")
-    text_2.config(bg="#3c3f41")
+    text_1.config(bg=theme.BG_LIGHTER)
+    text_2.config(bg=theme.BG_LIGHTER)
 
 
 def process_string_comparison(val1: Any, val2: Any, required: bool = True, is_artist: bool = False) -> Tuple[str, str, str]:
@@ -809,20 +853,20 @@ def process_string_comparison(val1: Any, val2: Any, required: bool = True, is_ar
     val1 = str(val1)
     val2 = str(val2)
     
-    bg_color = "#3c3f41" # Dark Input BG
+    bg_color = theme.BG_LIGHTER # Dark Input BG
     
     # Special handling for artist field - check if ID3 starts with DB value
     if is_artist:
         if val1 and not val2.startswith(val1):
-            bg_color = "#662222" # Mismatch
+            bg_color = theme.STATUS_ERROR_BG # Mismatch
         elif required and val1 == "":
-            bg_color = "#662222" # Required but empty
+            bg_color = theme.STATUS_ERROR_BG # Required but empty
     else:
         # Standard exact match comparison
         if val1 != val2:
-            bg_color = "#662222" # Mismatch
+            bg_color = theme.STATUS_ERROR_BG # Mismatch
         elif required and val1 == "":
-            bg_color = "#662222" # Required but empty
+            bg_color = theme.STATUS_ERROR_BG # Required but empty
         
     return val1, val2, bg_color
 
