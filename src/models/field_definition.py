@@ -31,7 +31,7 @@ class FieldDefinition:
     db_column: str
     display_name: str
     song_attr: Optional[str] = None  # Defaults to name if None
-    required: bool = True
+    required: bool = False  # Most fields are optional
     editable: bool = True
     db_editable: bool = True
     id3_editable: bool = True
@@ -62,10 +62,9 @@ FIELD_REGISTRY = [
         name="artist",
         db_column="fldArtistName",
         display_name="Artist",
-        required=True,
+        required=True,  # Required field
         editable=False,  # Calculated field
         db_editable=False,  # DB side is disabled
-        id3_editable=True,  # ID3 side is editable
         queryable=True,
         special_comparison=True  # Uses startswith logic
     ),
@@ -75,8 +74,7 @@ FIELD_REGISTRY = [
         name="title",
         db_column="fldTitle",
         display_name="Title",
-        required=True,
-        editable=True,
+        required=True,  # Required field
         queryable=True
     ),
     
@@ -85,8 +83,6 @@ FIELD_REGISTRY = [
         name="album",
         db_column="fldAlbum",
         display_name="Album",
-        required=False,
-        editable=True,
         queryable=True
     ),
     
@@ -95,8 +91,6 @@ FIELD_REGISTRY = [
         name="composer",
         db_column="fldComposer",
         display_name="Composer",
-        required=False,
-        editable=True,
         queryable=True
     ),
     
@@ -106,8 +100,6 @@ FIELD_REGISTRY = [
         name="publisher",
         db_column="fldLabel",
         display_name="Publisher",
-        required=False,
-        editable=True,
         queryable=True
     ),
     
@@ -116,8 +108,6 @@ FIELD_REGISTRY = [
         name="year",
         db_column="fldYear",
         display_name="Year",
-        required=False,
-        editable=True,
         queryable=True
     ),
     
@@ -126,9 +116,7 @@ FIELD_REGISTRY = [
         name="decade",
         db_column="fldCat2",  # Maps to genre_04
         display_name="Decade",
-        required=False,
-        editable=False,  # Calculated from year
-        queryable=False
+        editable=False  # Calculated from year
     ),
     
     # Genre - Required, fully editable
@@ -138,9 +126,7 @@ FIELD_REGISTRY = [
         db_column="fldCat1a",  # Primary genre
         display_name="Genres",
         song_attr="genres_all",  # Maps to genres_all on Song
-        required=True,
-        editable=True,
-        queryable=False  # Not in query dropdown
+        required=True  # Required field
     ),
     
     # ISRC - Optional, fully editable
@@ -148,10 +134,7 @@ FIELD_REGISTRY = [
     FieldDefinition(
         name="isrc",
         db_column="fldCDKey",
-        display_name="ISRC",
-        required=False,
-        editable=True,
-        queryable=False  # Not in query dropdown
+        display_name="ISRC"
     ),
     
     # Duration - Read-only, calculated from file
@@ -159,9 +142,7 @@ FIELD_REGISTRY = [
         name="duration",
         db_column="fldDuration",
         display_name="Duration",
-        required=False,
-        editable=False,  # Read-only
-        queryable=False
+        editable=False  # Read-only
     ),
 ]
 

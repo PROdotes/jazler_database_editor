@@ -29,7 +29,7 @@ class TestFieldDefinition:
         assert field.db_column == "fldTest"
         assert field.display_name == "Test Field"
         assert field.song_attr == "test"  # Defaults to name
-        assert field.required is True  # Default
+        assert field.required is False  # Default (most fields are optional)
         assert field.editable is True  # Default
     
     def test_field_definition_with_custom_song_attr(self):
