@@ -223,14 +223,14 @@ class DatabaseEditor(Tk):
         main_frame.columnconfigure(0, minsize=120)
         main_frame.columnconfigure(4, minsize=120)
 
-        fields = ["artist", "title", "album", "composer", "publisher", "year", "decade", "genre", "isrc", "duration"]
+        # Get fields from registry
+        fields = field_registry.names
         row_count = 2
         
         for field in fields:
-            # Name
-            f_name = field.capitalize()
-            if field == "genres_all": f_name = "Genres"
-            if field == "isrc": f_name = "ISRC"
+            # Get field definition from registry
+            field_def = field_registry.get(field)
+            f_name = field_def.display_name if field_def else field.capitalize()
             
             ttk.Label(main_frame, text=f_name + ":", anchor="e").grid(row=row_count, column=0, sticky="e", padx=(0, 10), pady=2)
 
@@ -248,7 +248,7 @@ class DatabaseEditor(Tk):
             self.buttons_db[field].bind("<Button-1>", lambda event, f=field: copy_text(self.texts_db[f], self.texts_id3[f], END))
 
             self.buttons_id3[field] = ttk.Button(action_frame, text="<-", width=3)
-            if field != "artist":
+            if field_def and field_def.db_editable:  # Only show <- button if DB side is editable
                 self.buttons_id3[field].pack(side="left")
                 self.buttons_id3[field].bind("<Button-1>", lambda event, f=field: copy_text(self.texts_id3[f], self.texts_db[f], END))
 
@@ -257,10 +257,12 @@ class DatabaseEditor(Tk):
                                          bg=BG_LIGHTER, fg=FG_WHITE, insertbackground="white")
             self.texts_id3[field].grid(row=row_count, column=3, sticky="ew", pady=2)
 
-            # Disabled styling
-            if field in ["decade", "duration", "artist"]:
+            # Disabled styling using registry
+            if field_def and field_def.is_disabled:
                  self.texts_db[field].config(state="disabled", disabledbackground=theme.BG_DISABLED, disabledforeground=theme.FG_MEDIUM_GRAY)
-                 if field != "artist":
+                 if field_def.id3_editable:  # Only disable ID3 side if it's also not editable
+                     pass  # ID3 side stays enabled
+                 else:
                      self.texts_id3[field].config(state="disabled", disabledbackground=theme.BG_DISABLED, disabledforeground=theme.FG_MEDIUM_GRAY)
 
             row_count += 1
@@ -425,12 +427,13 @@ class DatabaseEditor(Tk):
         self._update_text_field("artist", self.song.artist, self.id3.artist)
         self.texts_db["artist"].config(state="disabled")
         
-        for field in ["title", "album", "composer", "publisher", "year", "genres_all", "isrc"]:
-            val_song = getattr(self.song, field)
-            val_id3 = getattr(self.id3, field)
-            # Map 'genres_all' to 'genre' widget
-            widget_key = "genre" if field == "genres_all" else field
-            self._update_text_field(widget_key, val_song, val_id3)
+        # Update editable fields from registry
+        for field_def in field_registry.editable():
+            if field_def.name == "artist":
+                continue  # Already handled above
+            val_song = getattr(self.song, field_def.song_attr)
+            val_id3 = getattr(self.id3, field_def.song_attr)
+            self._update_text_field(field_def.name, val_song, val_id3)
 
         # Decade
         self.texts_db["decade"].config(state="normal")
@@ -458,9 +461,9 @@ class DatabaseEditor(Tk):
         txt_db = self.texts_db[field]
         txt_id3 = self.texts_id3[field]
         
-        # Determine if field is optional
-        optional_fields = ["album", "composer", "publisher", "isrc", "year"] 
-        is_required = field not in optional_fields
+        # Determine if field is optional using registry
+        field_def = field_registry.get(field)
+        is_required = field_def.required if field_def else True
         
         # Special handling for artist field (database has limited length)
         is_artist = field == "artist"
@@ -575,19 +578,21 @@ class DatabaseEditor(Tk):
             # Generic error (DB failure or other)
             ErrorHandler.show_error("Rename Error", f"An unexpected error occurred:\n{e}")
 
+
     def _gather_data_from_ui(self):
         """Extracts data from UI widgets and updates self.song/self.id3 objects."""
-        # Common fields
-        fields = ["title", "album", "composer", "publisher", "isrc", "genres_all"]
-        for field in fields:
-            # Map 'genres_all' to 'genre' widget
-            widget_key = "genre" if field == "genres_all" else field
+        # Gather editable fields from registry
+        for field_def in field_registry.editable():
+            if field_def.name == "artist":
+                continue  # Artist handled separately below
+            if field_def.name == "year":
+                continue  # Year handled separately below
             
-            val = self.texts_db[widget_key].get().strip()
-            setattr(self.song, field, val)
+            val = self.texts_db[field_def.name].get().strip()
+            setattr(self.song, field_def.song_attr, val)
             
-            val_id3 = self.texts_id3[widget_key].get().strip()
-            setattr(self.id3, field, val_id3)
+            val_id3 = self.texts_id3[field_def.name].get().strip()
+            setattr(self.id3, field_def.song_attr, val_id3)
             
         self.id3.artist = self.texts_id3["artist"].get().strip()
 
@@ -630,18 +635,20 @@ class DatabaseEditor(Tk):
             return
 
         if True: # Validation Passed
+            # Build update dict from registry - prevents typos in column names
             update_fields_dict = {
                 "fldTitle": self.song.title,
                 "fldAlbum": self.song.album,
                 "fldYear": self.song.year,
                 "fldComposer": self.song.composer,
                 "fldLabel": self.song.publisher,
+                "fldCDKey": self.song.isrc,
+                "fldDuration": self.song.duration,
+                # Genre fields require special handling
                 "fldCat1a": Song.get_genre_id(self.song.genre_01_name, self.reverse_genre_map),
                 "fldCat1b": Song.get_genre_id(self.song.genre_02_name, self.reverse_genre_map),
                 "fldCat1c": Song.get_genre_id(self.song.genre_03_name, self.reverse_genre_map),
-                "fldCDKey": self.song.isrc,
                 "fldCat2": self.song.genre_04_id,
-                "fldDuration": self.song.duration,
             }
 
             if rename:
