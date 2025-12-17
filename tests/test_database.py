@@ -60,10 +60,10 @@ def test_fetch_songs_contains_match(db_instance, mock_cursor):
     assert "WHERE Artist LIKE ?" in query
 
 def test_fetch_all_songs(db_instance, mock_cursor):
-    """Test fetching all songs (no params)."""
+    """Test fetching all songs (no params, no limit)."""
     db_instance.fetch_all_songs()
     query = mock_cursor.execute.call_args[0][0]
-    assert "SELECT TOP 2000 * FROM snDatabase" in query
+    assert "SELECT * FROM snDatabase" in query
     # Should call execute with NO params (hitting line 19 in _fetch)
     assert len(mock_cursor.execute.call_args[0]) == 1
 
