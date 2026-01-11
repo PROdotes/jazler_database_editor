@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Dictionaries{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-book me-2"></i>Dictionaries</h1>
+        <p class="text-muted">Manage reference tables and drop-down values.</p>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for table in tables %}
+    <div class="col">
+        <div class="card h-100 border-0 bg-dark-subtle hover-elevate">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="icon-square bg-primary text-white rounded-3 me-3">
+                        <i class="fas fa-list-ul fa-lg"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">{{ table.display_name or table.name }}</h5>
+                        <small class="text-muted">{{ table.name }}</small>
+                    </div>
+                </div>
+
+                {% if table.lookup_config and table.lookup_config.description %}
+                <p class="card-text text-muted small">{{ table.lookup_config.description }}</p>
+                {% else %}
+                <p class="card-text text-muted small">Manage {{ table.display_name }} entries.</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-top-0">
+                <a href="{{ url_for('lookups.list_entries', table_name=table.name) }}"
+                    class="btn btn-outline-primary w-100">
+                    <i class="fas fa-edit me-2"></i>Manage Entries
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> No lookup tables configured in the registry.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

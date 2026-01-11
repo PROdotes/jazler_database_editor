@@ -1,0 +1,10 @@
+{
+    "hidden_tables": [
+        "Blocks_SpecialDates",
+        "Clocks_Names",
+        "Blocks_Schedule",
+        "Clocks_Schedule"
+    ],
+    "hidden_fields": {},
+    "show_hidden": false
+}

@@ -1,0 +1,45 @@
+{% macro render_field(field, value=None, error=None) %}
+<div class="form-field mb-4">
+    <label for="{{ field.name }}">
+        {{ field.label }}
+        {% if field.is_primary_key %}
+        <span class="text-warning ml-1">(Primary Key)</span>
+        {% endif %}
+        {% if not field.nullable and not field.is_primary_key %}
+        <span class="text-danger">*</span>
+        {% endif %}
+    </label>
+
+    {% if field.type_name == 'BOOLEAN' %}
+    <div class="flex items-center">
+        <input type="checkbox" id="{{ field.name }}" name="{{ field.name }}" value="1" {% if value %}checked{% endif %}
+            class="">
+        <label for="{{ field.name }}" class="ml-2 inline-block">
+            Enabled
+        </label>
+    </div>
+    {% elif field.type_name in ['INTEGER', 'FLOAT', 'DOUBLE'] %}
+    <input type="number" id="{{ field.name }}" name="{{ field.name }}" value="{{ value if value is not none else '' }}"
+        step="{{ '0.01' if field.type_name != 'INTEGER' else '1' }}" {% if field.is_primary_key %}readonly{% endif %}
+        class="form-control {{ 'is-invalid' if error else '' }}">
+    {% else %}
+    {# Default to Text #}
+    {% if field.max_length and field.max_length > 255 %}
+    <textarea id="{{ field.name }}" name="{{ field.name }}" rows="3"
+        class="form-control {{ 'is-invalid' if error else '' }}">{{ value if value is not none else '' }}</textarea>
+    {% else %}
+    <input type="text" id="{{ field.name }}" name="{{ field.name }}" value="{{ value if value is not none else '' }}" {%
+        if field.max_length %}maxlength="{{ field.max_length }}" {% endif %}
+        class="form-control {{ 'is-invalid' if error else '' }}">
+    {% endif %}
+    {% endif %}
+
+    {% if error %}
+    <p class="text-danger small mt-1">{{ error }}</p>
+    {% endif %}
+
+    {% if field.name == 'fldComments' %}
+    <p class="text-muted small mt-1">Optional description or internal notes.</p>
+    {% endif %}
+</div>
+{% endmacro %}

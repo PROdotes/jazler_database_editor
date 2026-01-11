@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Edit - Songs{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>🔧 Bulk Edit</h1>
+        <p class="subtitle">Updating {{ songs|length }} selected songs.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('songs.search') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</div>
+
+<div class="bulk-edit-container">
+    <div class="songs-selection-preview card">
+        <h3>Selected Songs</h3>
+        <div class="selection-list overflow-auto">
+            <table class="data-table small">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Artist</th>
+                        <th>Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in songs %}
+                    <tr>
+                        <td class="mono">{{ s.primary_key }}</td>
+                        <td>{{ s.artist }}</td>
+                        <td>{{ s.title }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bulk-form-panel card mt-4">
+        <h3>Apply Changes</h3>
+        <p class="text-muted small">Only fields you check will be updated for all selected songs.</p>
+
+        <form action="{{ url_for('songs.bulk_save') }}" method="POST" id="bulk-save-form">
+            <input type="hidden" name="ids" value="{{ ids }}">
+
+            <div class="bulk-fields-grid">
+                <!-- Artist -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_artist" id="chk-artist">
+                        <label for="chk-artist">Artist</label>
+                    </div>
+                    <div class="field-input">
+                        {% from "macros/entity_picker.html" import entity_picker %}
+                        {{ entity_picker(
+                        'fldArtistCode',
+                        {'id': common.artist_id, 'name': common.artist if common.artist != '__mixed__' else ''},
+                        'Artist',
+                        '/artists/search',
+                        placeholder='(Multiple values)' if common.artist == '__mixed__' else 'Search...'
+                        ) }}
+                        {% if common.artist == "__mixed__" %}<span class="mixed-badge">Mixed Values</span>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Genre -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_genre" id="chk-genre">
+                        <label for="chk-genre">Genre</label>
+                    </div>
+                    <div class="field-input">
+                        <select name="genre" class="form-control" disabled id="input-genre">
+                            <option value="">(None)</option>
+                            {% for gid, name in genre_map.items()|sort(attribute='1') %}
+                            <option value="{{ gid }}" {{ 'selected' if common.genre==gid else '' }}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if common.genre == "__mixed__" %}<span class="mixed-badge">Mixed Values</span>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Decade -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_decade" id="chk-decade">
+                        <label for="chk-decade">Decade</label>
+                    </div>
+                    <div class="field-input">
+                        <select name="decade" class="form-control" disabled id="input-decade">
+                            <option value="">(None)</option>
+                            {% for did, name in decade_map.items()|sort(attribute='1') %}
+                            <option value="{{ did }}" {{ 'selected' if common.decade==did else '' }}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if common.decade == "__mixed__" %}<span class="mixed-badge">Mixed Values</span>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Tempo -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_tempo" id="chk-tempo">
+                        <label for="chk-tempo">Tempo</label>
+                    </div>
+                    <div class="field-input">
+                        <select name="tempo" class="form-control" disabled id="input-tempo">
+                            <option value="">(None)</option>
+                            {% for tid, name in tempo_map.items()|sort(attribute='1') %}
+                            <option value="{{ tid }}" {{ 'selected' if common.tempo==tid else '' }}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if common.tempo == "__mixed__" %}<span class="mixed-badge">Mixed Values</span>{% endif %}
+                    </div>
+                </div>
+
+                <!-- Album -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_album" id="chk-album">
+                        <label for="chk-album">Album</label>
+                    </div>
+                    <div class="field-input">
+                        <input type="text" name="album" class="form-control" disabled id="input-album"
+                            value="{{ '' if common.album == '__mixed__' else common.album or '' }}"
+                            placeholder="{{ 'Multiple values' if common.album == '__mixed__' else '' }}">
+                    </div>
+                </div>
+
+                <!-- Publisher -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_publisher" id="chk-publisher">
+                        <label for="chk-publisher">Publisher</label>
+                    </div>
+                    <div class="field-input">
+                        <input type="text" name="publisher" class="form-control" disabled id="input-publisher"
+                            value="{{ '' if common.publisher == '__mixed__' else common.publisher or '' }}"
+                            placeholder="{{ 'Multiple values' if common.publisher == '__mixed__' else '' }}">
+                    </div>
+                </div>
+
+                <!-- Year -->
+                <div class="bulk-field-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_year" id="chk-year">
+                        <label for="chk-year">Year</label>
+                    </div>
+                    <div class="field-input">
+                        <input type="number" name="year" class="form-control" disabled id="input-year"
+                            value="{{ '' if common.year == '__mixed__' else common.year or '' }}"
+                            placeholder="{{ 'Multiple values' if common.year == '__mixed__' else '' }}">
+                    </div>
+                </div>
+
+                <!-- Path Transform (Special) -->
+                <div class="bulk-field-row special-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="update_path_swap" id="chk-path-swap">
+                        <label for="chk-path-swap">🔄 Path Swap</label>
+                    </div>
+                    <div class="field-input path-swap-inputs">
+                        <input type="text" name="path_old" class="form-control" disabled id="input-path-old"
+                            placeholder="Find (e.g. B:\)">
+                        <span class="arrow">→</span>
+                        <input type="text" name="path_new" class="form-control" disabled id="input-path-new"
+                            placeholder="Replace (e.g. Z:\)">
+                    </div>
+                </div>
+
+                <!-- Whitespace Trim (Special) -->
+                <div class="bulk-field-row special-row">
+                    <div class="field-toggle">
+                        <input type="checkbox" name="trim_whitespace" id="chk-trim">
+                        <label for="chk-trim">✂️ Trim Whitespace</label>
+                    </div>
+                    <div class="field-input">
+                        <span class="text-muted small">Removes leading/trailing spaces from Artist, Title, Album,
+                            etc.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">🚀 Apply to {{ songs|length }} Songs</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .bulk-edit-container {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 30px;
+    }
+
+    .selection-list {
+        max-height: 500px;
+    }
+
+    .bulk-fields-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .bulk-field-row {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        align-items: center;
+        gap: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .field-toggle {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 600;
+    }
+
+    .field-toggle input {
+        scale: 1.5;
+    }
+
+    .field-input {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .mixed-badge {
+        font-size: 0.75rem;
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        padding: 4px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+    }
+
+    .special-row {
+        background: rgba(16, 185, 129, 0.03);
+        border-top: 2px solid rgba(16, 185, 129, 0.2);
+        margin-top: 10px;
+    }
+
+    .path-swap-inputs {
+        gap: 10px;
+    }
+
+    .arrow {
+        color: var(--text-muted);
+        font-weight: bold;
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+</style>
+
+<script>
+    // Handle enabling/disabling inputs based on checkboxes
+    const toggles = [
+        { chk: 'chk-artist', input: 'fldArtistCode_display' },
+        { chk: 'chk-genre', input: 'input-genre' },
+        { chk: 'chk-decade', input: 'input-decade' },
+        { chk: 'chk-album', input: 'input-album' },
+        { chk: 'chk-publisher', input: 'input-publisher' },
+        { chk: 'chk-year', input: 'input-year' },
+        { chk: 'chk-year', input: 'input-year' },
+        { chk: 'chk-path-swap', input: ['input-path-old', 'input-path-new'] },
+        { chk: 'chk-trim', input: [] },
+        { chk: 'chk-tempo', input: 'input-tempo' }
+    ];
+
+    toggles.forEach(t => {
+        const chk = document.getElementById(t.chk);
+        const inputIds = Array.isArray(t.input) ? t.input : [t.input];
+
+        chk.addEventListener('change', () => {
+            inputIds.forEach(id => {
+                const el = document.getElementById(id);
+                el.disabled = !chk.checked;
+                if (chk.checked) el.focus();
+            });
+
+            if (chk.checked) {
+                chk.closest('.bulk-field-row').style.background = 'rgba(99, 102, 241, 0.05)';
+            } else {
+                chk.closest('.bulk-field-row').style.background = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

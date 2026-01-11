@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Schema Browser - DB Toolkit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>📊 Schema Browser</h1>
+        <p class="subtitle">Explore the structure of the connected Access database.</p>
+    </div>
+    <div class="header-actions">
+        <form action="{{ url_for('schema.toggle_show_hidden') }}" method="POST">
+            <button type="submit" class="btn {{ 'btn-primary' if show_hidden else 'btn-secondary' }} btn-sm">
+                {{ '🙈 Hide Hidden' if show_hidden else '👁️ Show Hidden' }}
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="schema-container">
+    <div class="card overflow-hidden">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Table Name</th>
+                    <th class="actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for table in tables %}
+                <tr class="{{ 'row-hidden' if table.is_hidden else '' }}">
+                    <td class="mono">
+                        {{ table.name }}
+                        {% if table.is_hidden %}
+                        <span class="badge small">Hidden</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <div class="action-group">
+                            <a href="{{ url_for('schema.view_table', table=table.name) }}"
+                                class="btn btn-secondary btn-sm">Browse Data →</a>
+                            <form action="{{ url_for('schema.toggle_table_hide', table_name=table.name) }}"
+                                method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-icon btn-sm"
+                                    title="{{ 'Unhide' if table.is_hidden else 'Hide' }}">
+                                    {{ '👁️' if table.is_hidden else '🚫' }}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .row-hidden {
+        opacity: 0.5;
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    .badge {
+        background: var(--bg-tertiary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+
+    .action-group {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+    }
+</style>
+{% endblock %}

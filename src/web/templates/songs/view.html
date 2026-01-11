@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Song #{{ song.primary_key }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-nav">
+        <a href="{{ url_for('songs.search') }}" class="btn btn-secondary">◀ Back to Search</a>
+    </div>
+    <h1>Song #{{ song.primary_key }}</h1>
+</div>
+
+<div class="song-detail">
+    <!-- Main Info Card -->
+    <div class="detail-card">
+        <div class="card-header">
+            <h2>{{ song.artist or 'Unknown Artist' }}</h2>
+            <h3>{{ song.title or 'Unknown Title' }}</h3>
+        </div>
+
+        <div class="card-body">
+            <div class="field-grid">
+                <div class="field">
+                    <label>Album</label>
+                    <span>{{ song.album or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Year</label>
+                    <span>{{ song.year or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Composer</label>
+                    <span>{{ song.composer or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Publisher</label>
+                    <span>{{ song.publisher or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Genre</label>
+                    <span>{{ display_data.genre_display or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Decade</label>
+                    <span>{{ display_data.decade_display or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Tempo</label>
+                    <span>{{ display_data.tempo_display or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>ISRC</label>
+                    <span class="mono">{{ song.isrc or '—' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Info Card -->
+    <div class="detail-card">
+        <div class="card-header">
+            <h2>📁 File</h2>
+        </div>
+
+        <div class="card-body">
+            <div class="field full-width">
+                <label>Database Path</label>
+                <span class="mono file-path">{{ file_info.db_path or 'No path' }}</span>
+            </div>
+
+            {% if file_info.db_path != file_info.resolved_path %}
+            <div class="field full-width">
+                <label>Resolved Local Path <span class="field-hint"
+                        title="Mapped via drive_map in config">🔗</span></label>
+                <span class="mono file-path">{{ file_info.resolved_path }}</span>
+            </div>
+            {% endif %}
+
+            <div class="field">
+                <label>Status</label>
+                {% if file_info.vfs_status == 'live' %}
+                <span class="status-ok">🟢 LIVE: File found on disk</span>
+                {% elif file_info.vfs_status == 'virtual' %}
+                <span class="status-virtual">🔵 VIRTUAL: Found in log snapshot</span>
+                {% else %}
+                <span class="status-error">🔴 MISSING: File not found</span>
+                {% endif %}
+            </div>
+
+            <div class="field-row">
+                <div class="field">
+                    <label>Duration</label>
+                    <span>{{ "%.1f"|format(song.duration or 0) }}s</span>
+                </div>
+
+                <div class="field">
+                    <label>BPM</label>
+                    <span>{{ song.bpm or '—' }}</span>
+                </div>
+
+                <div class="field">
+                    <label>Enabled</label>
+                    <span class="{{ 'status-ok' if song.enabled else 'status-disabled' }}">
+                        {{ '✓ Yes' if song.enabled else '✗ No' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-bar">
+        <div class="action-group">
+            <a href="https://www.google.com/search?q={{ (song.artist or '') | urlencode }}+{{ (song.title or '') | urlencode }}"
+                target="_blank" class="btn btn-secondary">🔍 Google</a>
+            <a href="https://www.discogs.com/search/?q={{ (song.artist or '') | urlencode }}+{{ (song.title or '') | urlencode }}&type=all"
+                target="_blank" class="btn btn-secondary">🔍 Discogs</a>
+            <a href="https://musicbrainz.org/taglookup/index?tag-lookup.artist={{ (song.artist or '') | urlencode }}&tag-lookup.release={{ (song.title or '') | urlencode }}"
+                target="_blank" class="btn btn-secondary">🧠 MusicBrainz</a>
+        </div>
+
+        <div class="action-group">
+            <a href="{{ url_for('songs.edit', song_id=song.primary_key) }}" class="btn btn-primary">✏️ Edit</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

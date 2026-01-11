@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Song #{{ song.primary_key }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-nav">
+        <a href="{{ url_for('songs.search') }}" class="btn btn-secondary">◀ Back to Search</a>
+    </div>
+    <div class="header-title-row">
+        <h1>Edit Song #{{ song.primary_key }}</h1>
+
+        {% if nav and nav.total > 0 %}
+        <div class="batch-nav">
+            {% if nav.prev_id %}
+            <a href="{{ url_for('songs.edit', song_id=nav.prev_id) }}" class="btn btn-nav"
+                title="Previous song ({{ nav.prev_id }})">◀ Prev</a>
+            {% else %}
+            <span class="btn btn-nav disabled">◀ Prev</span>
+            {% endif %}
+
+            <span class="batch-position">{{ nav.position }} of {{ nav.total }}</span>
+
+            {% if nav.next_id %}
+            <a href="{{ url_for('songs.edit', song_id=nav.next_id) }}" class="btn btn-nav"
+                title="Next song ({{ nav.next_id }})">Next ▶</a>
+            {% else %}
+            <span class="btn btn-nav disabled">Next ▶</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<form action="{{ url_for('songs.save', song_id=song.primary_key) }}" method="post" class="edit-form">
+    <div class="edit-layout">
+        <!-- Left Column: Database Values -->
+        <div class="edit-column">
+            <div class="column-header">
+                <h2>📁 Database</h2>
+            </div>
+
+            <div class="field-group">
+                <div class="form-field">
+                    {% from "macros/entity_picker.html" import entity_picker %}
+                    {{ entity_picker(
+                    'fldArtistCode',
+                    {'id': song.fldArtistCode, 'name': song.artist},
+                    'Artist',
+                    '/artists/search'
+                    ) }}
+                    {# Hidden input for Artist Name (will be updated by JS validation if really needed, but mostly we
+                    rely on code) #}
+                    <input type="hidden" name="fldArtistName" value="{{ song.artist }}">
+                </div>
+
+                <div class="field-row">
+                    <div class="form-field checkbox-field" style="flex: 1;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="enabled" id="enabled" {{ 'checked' if song.enabled else '' }}>
+                            <span class="slider round"></span>
+                        </label>
+                        <label for="enabled" class="checkbox-label">Enabled</label>
+                    </div>
+
+                    <div class="form-field checkbox-field" style="flex: 1;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="enabled_auto" id="enabled_auto" {{ 'checked' if
+                                song['fldEnabledAuto'] else '' }}>
+                            <span class="slider round"></span>
+                        </label>
+                        <label for="enabled_auto" class="checkbox-label">Auto-DJ</label>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" name="title" value="{{ song.title or '' }}" class="form-control">
+                </div>
+
+                <div class="form-field">
+                    <label for="album">Album</label>
+                    <input type="text" id="album" name="album" value="{{ song.album or '' }}" class="form-control">
+                </div>
+
+                <div class="form-field">
+                    <label for="year">Year</label>
+                    <input type="number" id="year" name="year" value="{{ song.year or '' }}" class="form-control"
+                        min="1900" max="2099">
+                </div>
+
+                <div class="form-field">
+                    <label for="composer">Composer</label>
+                    <input type="text" id="composer" name="composer" value="{{ song.composer or '' }}"
+                        class="form-control">
+                </div>
+
+                <div class="form-field">
+                    <label for="publisher">Publisher / Label</label>
+                    <input type="text" id="publisher" name="publisher" value="{{ song.publisher or '' }}"
+                        class="form-control">
+                </div>
+
+
+
+                <div class="field-row">
+                    <div class="form-field" style="flex: 1;">
+                        <label for="genre">Genre (Cat1a)</label>
+                        <select id="genre" name="genre" class="form-control">
+                            <option value="">(None)</option>
+                            {% for id, name in genre_map.items() %}
+                            {% if id != 0 %}
+                            <option value="{{ id }}" {% if song.genre==id %}selected{% endif %}>{{ name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field" style="flex: 1;">
+                        <label for="subcat1">Subcat 1 (Cat1b)</label>
+                        <select id="subcat1" name="subcat1" class="form-control">
+                            <option value="">(None)</option>
+                            {% for id, name in genre_map.items() %}
+                            {% if id != 0 %}
+                            <option value="{{ id }}" {% if song['fldCat1b']==id %}selected{% endif %}>{{ name }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field" style="flex: 1;">
+                        <label for="subcat2">Subcat 2 (Cat1c)</label>
+                        <select id="subcat2" name="subcat2" class="form-control">
+                            <option value="">(None)</option>
+                            {% for id, name in genre_map.items() %}
+                            {% if id != 0 %}
+                            <option value="{{ id }}" {% if song['fldCat1c']==id %}selected{% endif %}>{{ name }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field-row">
+                    <div class="form-field" style="flex: 1;">
+                        <label for="decade">Decade</label>
+                        <select id="decade" name="decade" class="form-control">
+                            <option value="">(None)</option>
+                            {% for id, name in decade_map.items() %}
+                            {% if id != 0 %}
+                            <option value="{{ id }}" {% if song.decade==id %}selected{% endif %}>{{ name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field" style="flex: 1;">
+                        <label for="tempo">Tempo</label>
+                        <select id="tempo" name="tempo" class="form-control">
+                            <option value="">(None)</option>
+                            {% for id, name in tempo_map.items() %}
+                            {% if id != 0 %}
+                            <option value="{{ id }}" {% if song.tempo==id %}selected{% endif %}>{{ name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-field" style="flex: 1;">
+                        <label for="isrc">ISRC</label>
+                        <input type="text" id="isrc" name="isrc" value="{{ song.isrc or '' }}" class="form-control mono"
+                            placeholder="CC-XXX-YY-NNNNN">
+                    </div>
+                </div>
+
+                <div class="form-field readonly mt-2">
+                    <label>Entry Date</label>
+                    <div class="readonly-value small text-muted">{{ song['fldEntryDate'] or '—' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: ID3 Tags (read-only for now) -->
+        <div class="edit-column id3-column">
+            <div class="column-header">
+                <h2>🏷️ ID3 Tags</h2>
+                <span class="badge">Read Only</span>
+            </div>
+
+            <div class="field-group">
+                {% if id3_data %}
+                <div class="form-field readonly">
+                    <label>Artist</label>
+                    <div class="readonly-value {{ 'match' if id3_data.artist == song.artist else 'mismatch' }}">
+                        {{ id3_data.artist or '—' }}
+                    </div>
+                </div>
+
+                <div class="form-field readonly">
+                    <label>Title</label>
+                    <div class="readonly-value {{ 'match' if id3_data.title == song.title else 'mismatch' }}">
+                        {{ id3_data.title or '—' }}
+                    </div>
+                </div>
+
+                <div class="form-field readonly">
+                    <label>Album</label>
+                    <div class="readonly-value {{ 'match' if id3_data.album == song.album else 'mismatch' }}">
+                        {{ id3_data.album or '—' }}
+                    </div>
+                </div>
+
+                <div class="form-field readonly">
+                    <label>Year</label>
+                    <div
+                        class="readonly-value {{ 'match' if id3_data.year|string == song.year|string else 'mismatch' }}">
+                        {{ id3_data.year or '—' }}
+                    </div>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <p>⚠️ File not accessible</p>
+                    <p class="text-muted">{{ song.filename }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- File Info -->
+    <div class="file-info-bar">
+        <div class="file-path">
+            <label>Path:</label>
+            <span class="mono">{{ file_info.db_path or 'No path' }}</span>
+
+            {% if file_info.vfs_status == 'live' %}
+            <span class="status-badge ok">✓ Live</span>
+            {% elif file_info.vfs_status == 'virtual' %}
+            <span class="status-badge virtual">⚡ Virtual</span>
+            {% else %}
+            <span class="status-badge error">✗ Missing</span>
+            {% endif %}
+
+            {% if file_info.db_path != file_info.resolved_path %}
+            <div class="resolved-path">
+                <label>Mapped:</label>
+                <span class="mono">{{ file_info.resolved_path }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="file-meta">
+            <!-- Extended metadata that isn't editable yet -->
+            <span>Duration: {{ song.duration or '0' }}s</span>
+            <span>BPM: {{ song.bpm or '—' }}</span>
+        </div>
+    </div>
+
+    <!-- Tools Panel -->
+    <div class="tools-panel">
+        <div class="tools-header">
+            <h3>🔧 Quick Tools</h3>
+        </div>
+        <div class="tools-buttons">
+            <button type="button" class="btn btn-tool" onclick="parseAlbumField()"
+                title="Split 'Album; Publisher; Year' into separate fields">
+                📦 Parse Album
+            </button>
+            <button type="button" class="btn btn-tool" onclick="trimWhitespace()"
+                title="Trim leading/trailing whitespace from all fields">
+                ✂️ Trim Whitespace
+            </button>
+            <button type="button" class="btn btn-tool" onclick="titleCaseTitle()" title="Convert Title to Title Case">
+                🔤 Title Case
+            </button>
+            <button type="button" class="btn btn-tool" onclick="normalizeFeat()"
+                title="Normalize 'ft.', 'feat', 'featuring' to 'feat.' (Currently disabled for Artist rework)" disabled>
+                🎤 Normalize feat.
+            </button>
+            <button type="button" class="btn btn-tool" onclick="clearComposer()" title="Clear the composer field">
+                🗑️ Clear Composer
+            </button>
+        </div>
+    </div>
+
+    <!-- Filesystem Options -->
+    <div class="tools-panel fs-options">
+        <div class="tools-header">
+            <h3>📂 Filesystem Options</h3>
+        </div>
+        <div class="tools-buttons">
+            <label class="checkbox-container">
+                <input type="checkbox" name="rename_physical" id="rename_physical">
+                <span class="checkmark"></span>
+                Rename physical file to match "Artist - Title"
+            </label>
+            <div id="rename-preview" class="rename-preview mono" style="display: none;">
+                Preview: <span id="preview-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar">
+        <div class="action-group">
+            <a href="https://www.google.com/search?q={{ (song.artist or '') | urlencode }}+{{ (song.title or '') | urlencode }}"
+                target="_blank" class="btn btn-secondary">🔍 Google</a>
+            <a href="https://www.discogs.com/search/?q={{ (song.artist or '') | urlencode }}+{{ (song.title or '') | urlencode }}&type=all"
+                target="_blank" class="btn btn-secondary">🔍 Discogs</a>
+            <a href="https://musicbrainz.org/taglookup/index?tag-lookup.artist={{ (song.artist or '') | urlencode }}&tag-lookup.release={{ (song.title or '') | urlencode }}"
+                target="_blank" class="btn btn-secondary">🧠 MusicBrainz</a>
+        </div>
+
+        <div class="action-group">
+            <a href="{{ url_for('songs.view', song_id=song.primary_key) }}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary">💾 Save</button>
+            {% if nav and nav.next_id %}
+            <button type="submit" name="next_action" value="next" class="btn btn-success">💾 Save & Next ▶</button>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/edit.js') }}"></script>
+{% endblock %}
+{% endblock %}

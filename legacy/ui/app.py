@@ -5,7 +5,7 @@ import webbrowser
 from typing import Any, Tuple
 from os import makedirs
 from os import path
-from tkinter import Tk, Toplevel, Label, Button, Entry, END, messagebox, ttk, Frame, Checkbutton, BooleanVar
+from tkinter import Tk, Toplevel, Label, Button, Entry, END, ttk, Frame
 from tkinter.ttk import Combobox
 
 # Updated Imports for New Structure
@@ -15,9 +15,8 @@ from src.utils.audio import AudioMetadata
 from src.core.database import Database
 from src.core.config import app_config
 from src.ui.theme import theme
-from src.utils.error_handler import ErrorHandler, ErrorSeverity
+from src.utils.error_handler import ErrorHandler
 from src.validators.song_validator import SongValidator
-from src.validators.validation_result import ValidationLevel
 
 
 class DatabaseEditor(Tk):

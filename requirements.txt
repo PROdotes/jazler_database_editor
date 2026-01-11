@@ -2,3 +2,5 @@ pyodbc
 mutagen
 pytest
 pytest-mock
+Flask
+Flask-Session

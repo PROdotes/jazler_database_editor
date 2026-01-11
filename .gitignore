@@ -8,3 +8,10 @@ __pycache__/
 .venv/
 .idea/
 app_errors.log
+.sessions/
+
+log.txt
+*_report.txt
+metadata_snapshot.json
+pending_sync.json
+.agent/

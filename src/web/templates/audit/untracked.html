@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Untracked Files - DB Toolkit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>🕵️ Untracked Files Report</h1>
+        <p class="subtitle">Physical files found on disk that are NOT in the database.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('audit.index') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="report-container">
+    <section class="report-section">
+        <div class="section-header info">
+            <h2>❓ Orphan Files</h2>
+            <span class="badge">{{ files|length }}</span>
+        </div>
+        <p class="section-desc">These MP3s exist in your library but are not tracked in the Jazler database.</p>
+
+        <div class="card overflow-hidden">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Path</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td class="mono small">{{ loop.index }}</td>
+                        <td class="mono small text-muted">{{ file }}</td>
+                        <td class="actions">
+                            <button class="btn btn-icon btn-sm btn-outline-secondary btn-copy"
+                                data-clipboard-text="{{ file }}" title="Copy Path">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center py-5">
+                            <span class="text-muted">No untracked files found. Your library is clean! ✨</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script>
+    document.querySelectorAll('.btn-copy').forEach(btn => {
+        btn.addEventListener('click', function () {
+            navigator.clipboard.writeText(this.getAttribute('data-clipboard-text'));
+            const icon = this.querySelector('i');
+            icon.className = 'fas fa-check text-success';
+            setTimeout(() => icon.className = 'fas fa-copy', 2000);
+        });
+    });
+</script>
+
+<style>
+    .report-section {
+        margin-bottom: 50px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .section-header.info h2 {
+        color: #3b82f6;
+    }
+
+    .badge {
+        background: var(--bg-tertiary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .section-desc {
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+</style>
+{% endblock %}

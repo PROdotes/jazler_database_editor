@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}{{ table }} - Schema Browser{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>📑 Table: <span class="mono">{{ table }}</span></h1>
+        <p class="subtitle">Structure and first 10 rows of data. Click fields to toggle visibility.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('schema.index') }}" class="btn btn-secondary">← Back to Tables</a>
+    </div>
+</div>
+
+<div class="table-detail-tabs">
+    <!-- Columns Section -->
+    <section class="detail-section card">
+        <h3>Columns</h3>
+        <p class="small text-muted mb-2">Tip: Click a field to hide/show it in the preview below.</p>
+        <div class="columns-grid">
+            {% for col in columns %}
+            <form action="{{ url_for('schema.toggle_field_hide', table_name=table, field_name=col.name) }}"
+                method="POST">
+                <button type="submit" class="column-tag-btn">
+                    <div
+                        class="column-tag {{ 'is-pk' if col.name == pk_column else '' }} {{ 'is-hidden-col' if col.is_hidden else '' }}">
+                        <span class="col-name mono">
+                            {% if col.name == pk_column %}🔑 {% endif %}
+                            {{ col.name }}
+                        </span>
+                        <span class="col-type small">{{ col.type_name }}</span>
+                        {% if col.is_hidden %}
+                        <span class="hide-icon">🚫</span>
+                        {% endif %}
+                    </div>
+                </button>
+            </form>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Data Preview Section -->
+    <section class="detail-section">
+        <h3>Sample Data (Top 10)</h3>
+        {% if rows %}
+        <div class="card overflow-auto max-height-600">
+            <table class="data-table small">
+                <thead>
+                    <tr>
+                        {% for col in columns %}
+                        {% if not col.is_hidden %}
+                        <th>{{ col.name }}</th>
+                        {% endif %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        {% for col_name in visible_cols %}
+                        <td class="mono small">{{ row[col_name] }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state card">
+            <p>No rows to display. All columns hidden or table is empty.</p>
+        </div>
+        {% endif %}
+    </section>
+</div>
+
+<style>
+    .columns-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 15px;
+    }
+
+    .column-tag-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        width: 100%;
+        text-align: left;
+        cursor: pointer;
+        display: block;
+    }
+
+    .column-tag {
+        background: var(--bg-tertiary);
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    .column-tag:hover {
+        border-color: var(--accent-primary);
+        transform: translateY(-2px);
+    }
+
+    .col-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .column-tag.is-pk {
+        border-color: #f59e0b;
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .column-tag.is-pk .col-name {
+        color: #f59e0b;
+    }
+
+    .column-tag.is-hidden-col {
+        opacity: 0.4;
+        background: rgba(0, 0, 0, 0.1);
+        border-style: dashed;
+    }
+
+    .hide-icon {
+        font-size: 0.8rem;
+    }
+
+    .col-type {
+        color: var(--text-muted);
+    }
+
+    .max-height-600 {
+        max-height: 600px;
+    }
+
+    .detail-section {
+        margin-bottom: 30px;
+    }
+
+    table.small {
+        font-size: 0.75rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: var(--text-muted);
+    }
+
+    .mb-2 {
+        margin-bottom: 0.5rem;
+    }
+</style>
+{% endblock %}

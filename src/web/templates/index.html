@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Database Toolkit - Home{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🎵 MS Database Toolkit</h1>
+    <p class="subtitle">Universal database operations for Jazler and beyond</p>
+</div>
+
+{% if not connected %}
+<div class="connect-panel">
+    <h2>Connect to Database</h2>
+    <form action="{{ url_for('main.connect') }}" method="post" class="connect-form">
+        <div class="form-group">
+            <label for="database">Select Database:</label>
+            <div class="db-options">
+                {% for db_key, db_info in databases.items() %}
+                <label class="db-option {{ 'live' if 'live' in db_key else 'test' }}">
+                    <input type="radio" name="database" value="{{ db_key }}" {{ 'checked' if db_key=='jazler_test'
+                        else '' }}>
+                    <span class="db-option-content">
+                        <span class="db-name">{{ db_key }}</span>
+                        <span class="db-desc">{{ db_info.get('description', '') }}</span>
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">Connect</button>
+    </form>
+</div>
+{% else %}
+<div class="dashboard">
+    <div class="dashboard-cards">
+        <a href="{{ url_for('songs.search') }}" class="dashboard-card">
+            <div class="card-icon">📋</div>
+            <div class="card-content">
+                <h3>Songs</h3>
+                <p>Search, browse, and edit songs</p>
+            </div>
+        </a>
+
+        <div class="dashboard-card disabled">
+            <div class="card-icon">📊</div>
+            <div class="card-content">
+                <h3>Schema Explorer</h3>
+                <p>View database structure</p>
+                <span class="badge">Coming Soon</span>
+            </div>
+        </div>
+
+        <div class="dashboard-card disabled">
+            <div class="card-icon">🔍</div>
+            <div class="card-content">
+                <h3>Audit</h3>
+                <p>Find missing files</p>
+                <span class="badge">Coming Soon</span>
+            </div>
+        </div>
+
+        <div class="dashboard-card disabled">
+            <div class="card-icon">📦</div>
+            <div class="card-content">
+                <h3>Export</h3>
+                <p>Export to JSON/CSV</p>
+                <span class="badge">Coming Soon</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

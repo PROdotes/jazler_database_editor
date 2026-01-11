@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Report - DB Toolkit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>📊 Library Audit Report</h1>
+        <p class="subtitle">Detailed breakdown of moved and missing files.</p>
+    </div>
+    <div class="header-actions">
+        <a href="{{ url_for('audit.index') }}" class="btn btn-secondary">← Back to Dashboard</a>
+    </div>
+</div>
+
+<div class="report-container">
+    <!-- Moved Songs Section -->
+    <section class="report-section">
+        <div class="section-header warning">
+            <h2>📦 Moved Songs (Found Elsewhere)</h2>
+            <span class="badge">{{ results.moved|length }}</span>
+        </div>
+        <p class="section-desc">These songs exist in the database but were found in DIFFERENT folders than expected.</p>
+
+        <div class="card overflow-hidden">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Artist / Title</th>
+                        <th>Old Path (DB)</th>
+                        <th>New Location (Disk)</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for song in results.moved %}
+                    <tr>
+                        <td class="mono small">{{ song.id }}</td>
+                        <td>
+                            <div class="song-info">
+                                <span class="song-title">{{ song.title }}</span>
+                                <span class="song-artist">{{ song.artist }}</span>
+                            </div>
+                        </td>
+                        <td class="mono small text-muted">{{ song.db_path }}</td>
+                        <td>
+                            {% for path in song.new_paths %}
+                            <div class="mono small text-success">{{ path }}</div>
+                            {% endfor %}
+                        </td>
+                        <td class="actions">
+                            <a href="{{ url_for('songs.edit', song_id=song.id) }}" class="btn btn-icon"
+                                title="Edit/Fix Path">✏️</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Missing Songs Section -->
+    <section class="report-section">
+        <div class="section-header danger">
+            <h2>👻 Ghosted Songs (Truly Missing)</h2>
+            <span class="badge">{{ results.missing|length }}</span>
+        </div>
+        <p class="section-desc">These songs are not in the database location and could not be found anywhere else on
+            disk/log.</p>
+
+        <div class="card overflow-hidden">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Artist / Title</th>
+                        <th>Expected Path</th>
+                        <th class="actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for song in results.missing %}
+                    <tr>
+                        <td class="mono small">{{ song.id }}</td>
+                        <td>
+                            <div class="song-info">
+                                <span class="song-title">{{ song.title }}</span>
+                                <span class="song-artist">{{ song.artist }}</span>
+                            </div>
+                        </td>
+                        <td class="mono small text-muted">{{ song.db_path }}</td>
+                        <td class="actions">
+                            <a href="{{ url_for('songs.edit', song_id=song.id) }}" class="btn btn-icon"
+                                title="Edit">✏️</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<style>
+    .report-section {
+        margin-bottom: 50px;
+    }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .section-header.warning h2 {
+        color: var(--accent-primary);
+    }
+
+    .section-header.danger h2 {
+        color: var(--danger);
+    }
+
+    .badge {
+        background: var(--bg-tertiary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .section-desc {
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+        font-size: 0.95rem;
+    }
+
+    .song-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .song-title {
+        font-weight: 600;
+    }
+
+    .song-artist {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .text-success {
+        color: #10b981;
+    }
+</style>
+{% endblock %}

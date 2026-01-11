@@ -1,0 +1,177 @@
+{
+    "ignored_tables": [
+        "MSysObjects",
+        "MSysACEs",
+        "MSysRelationships",
+        "MSysQueries",
+        "MSysAccessStorage",
+        "MSysNavPaneGroups",
+        "MSysNavPaneGroupCategories",
+        "MSysNavPaneGroupToObjects",
+        "MSysNavPaneObjectIDs"
+    ],
+    "ignored_columns": {
+        "snDatabase": [],
+        "snArtists": [
+            "fldF1",
+            "fldF2",
+            "fldF3",
+            "fldF4",
+            "fldF5",
+            "fldF6",
+            "fldF7",
+            "fldF8",
+            "fldF9",
+            "fldF10",
+            "fldF11",
+            "fldArtistURL",
+            "fldBornAt",
+            "fldBirthDate",
+            "fldHistory",
+            "fldComments"
+        ],
+        "snCat1": [
+            "fldColor",
+            "fldF1",
+            "fldF2",
+            "fldF3",
+            "fldF4"
+        ],
+        "snCat2": [
+            "fldColor",
+            "fldF1",
+            "fldF2",
+            "fldF3",
+            "fldF4"
+        ],
+        "snCat3": [
+            "fldColor",
+            "fldF1",
+            "fldF2",
+            "fldF3",
+            "fldF4"
+        ]
+    },
+    "display_names": {
+        "snDatabase": {
+            "AUID": "ID",
+            "fldArtistName": "Artist",
+            "fldTitle": "Title",
+            "fldAlbum": "Album",
+            "fldComposer": "Composer",
+            "fldLabel": "Publisher",
+            "fldYear": "Year",
+            "fldFilename": "File Path",
+            "fldEnabled": "Enabled",
+            "fldEnabledAuto": "Auto-DJ",
+            "fldCDKey": "ISRC",
+            "fldBarCode": "Barcode",
+            "fldCat1a": "Genre",
+            "fldCat1b": "Subcat 1",
+            "fldCat1c": "Subcat 2",
+            "fldCat2": "Decade",
+            "fldCat3": "Tempo"
+        },
+        "snArtists": {
+            "AUID": "ID",
+            "fldName": "Name",
+            "fldSurname": "Surname",
+            "fldArtistType": "Type"
+        },
+        "snCat1": {
+            "AUID": "ID",
+            "fldMusicType": "Name",
+            "fldComments": "Description"
+        },
+        "snCat2": {
+            "AUID": "ID",
+            "fldMusicType": "Name",
+            "fldComments": "Description"
+        },
+        "snCat3": {
+            "AUID": "ID",
+            "fldMusicType": "Name",
+            "fldComments": "Description"
+        }
+    },
+    "primary_keys": {
+        "snDatabase": "AUID",
+        "snCat1": "AUID",
+        "snCat2": "AUID",
+        "snCat3": "AUID"
+    },
+    "tables": {
+        "snCat1": {
+            "display_name": "Genre",
+            "is_lookup": true,
+            "lookup_config": {
+                "key_column": "AUID",
+                "display_column": "fldMusicType",
+                "sort_column": "fldMusicType",
+                "grid_columns": [
+                    "AUID",
+                    "fldMusicType",
+                    "fldComments"
+                ]
+            }
+        },
+        "snCat2": {
+            "display_name": "Decade",
+            "is_lookup": true,
+            "lookup_config": {
+                "key_column": "AUID",
+                "display_column": "fldMusicType",
+                "sort_column": "fldMusicType",
+                "grid_columns": [
+                    "AUID",
+                    "fldMusicType",
+                    "fldComments"
+                ]
+            }
+        },
+        "snCat3": {
+            "display_name": "Tempo",
+            "is_lookup": true,
+            "lookup_config": {
+                "key_column": "AUID",
+                "display_column": "fldMusicType",
+                "sort_column": "fldMusicType",
+                "grid_columns": [
+                    "AUID",
+                    "fldMusicType",
+                    "fldComments"
+                ]
+            }
+        }
+    },
+    "grid_views": {
+        "default": [
+            "AUID",
+            "fldArtistName",
+            "fldTitle",
+            "fldAlbum",
+            "fldYear"
+        ],
+        "publishing": [
+            "AUID",
+            "fldArtistName",
+            "fldTitle",
+            "fldComposer",
+            "fldLabel",
+            "fldCDKey"
+        ],
+        "technical": [
+            "AUID",
+            "fldArtistName",
+            "fldTitle",
+            "fldFilename",
+            "fldDuration",
+            "fldEnabled"
+        ]
+    },
+    "form_layouts": {
+        "default": [
+            "*"
+        ]
+    }
+}

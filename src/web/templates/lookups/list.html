@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{{ table.display_name or table.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-1">
+                <li class="breadcrumb-item"><a href="{{ url_for('lookups.index') }}">Dictionaries</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ table.display_name or table.name }}</li>
+            </ol>
+        </nav>
+        <h1 class="h2">{{ table.display_name or table.name }}</h1>
+    </div>
+    <div>
+        <a href="{{ url_for('lookups.create', table_name=table.name) }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add New
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    {% for col_name in grid_cols %}
+                    {% set col_def = table.get_column(col_name) %}
+                    <th>{{ col_def.label if col_def else col_name }}</th>
+                    {% endfor %}
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    {% for col_name in grid_cols %}
+                    <td>{{ record[col_name] }}</td>
+                    {% endfor %}
+                    <td class="text-end">
+                        {% set pk_val = record[config.key_column] %}
+                        <div class="btn-group">
+                            <a href="{{ url_for('lookups.edit', table_name=table.name, id=pk_val) }}"
+                                class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-pencil-alt"></i>
+                            </a>
+                            <!-- Initial delete implementation - validation needed later -->
+                            <button type="button" class="btn btn-sm btn-outline-danger" disabled
+                                title="Delete not yet safe">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ grid_cols|length + 1 }}" class="text-center py-5 text-muted">
+                        <i class="fas fa-folder-open fa-2x mb-3 d-block"></i>
+                        No entries found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}Offline Sync - DB Toolkit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>🔄 Offline Sync Manager</h1>
+        <p class="subtitle">Review and apply changes made while disconnected from the station.</p>
+    </div>
+    <div class="header-actions">
+        {% if pending %}
+        <form action="{{ url_for('sync.apply') }}" method="POST" style="display: inline;">
+            <button type="submit" class="btn btn-primary">🚀 Sync All Changes</button>
+        </form>
+        <form action="{{ url_for('sync.clear') }}" method="POST" style="display: inline;"
+            onsubmit="return confirm('Are you sure you want to discard ALL pending changes?');">
+            <button type="submit" class="btn btn-danger-outline">🗑️ Clear Queue</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="sync-container">
+    {% if not pending %}
+    <div class="empty-state">
+        <div class="empty-icon">🏖️</div>
+        <h2>Queue is empty</h2>
+        <p>No offline changes detected. You're all caught up!</p>
+        <a href="{{ url_for('main.index') }}" class="btn btn-secondary">Go to Search</a>
+    </div>
+    {% else %}
+    <div class="card overflow-hidden">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Song</th>
+                    <th>Pending Changes</th>
+                    <th>Edited At</th>
+                    <th class="actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in pending %}
+                <tr>
+                    <td>
+                        <div class="song-info">
+                            <span class="song-title">{{ item.title }}</span>
+                            <span class="song-artist">{{ item.artist }}</span>
+                            <span class="song-id mono">#{{ item.id }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="changes-list">
+                            {% for field, value in item.fields.items() %}
+                            <div class="change-tag">
+                                <span class="field-name">{{ field }}:</span>
+                                <span class="field-value">{{ value or 'NULL' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="text-muted small">
+                        {{ item.timestamp.split('T')[0] }}<br>
+                        {{ item.timestamp.split('T')[1][:5] }}
+                    </td>
+                    <td class="actions">
+                        <div class="btn-group">
+                            <a href="{{ url_for('songs.view', song_id=item.id) }}" class="btn btn-icon"
+                                title="View Song">👁️</a>
+                            <form action="{{ url_for('sync.discard', song_id=item.id) }}" method="POST"
+                                style="display:inline;">
+                                <button type="submit" class="btn btn-icon btn-danger-text" title="Discard">✕</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .sync-container {
+        margin-top: 20px;
+    }
+
+    .changes-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .change-tag {
+        background: var(--bg-tertiary);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        border: 1px solid var(--border-color);
+    }
+
+    .field-name {
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .field-value {
+        color: var(--accent-primary);
+    }
+
+    .song-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .song-title {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .song-artist {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .song-id {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        border: 2px dashed var(--border-color);
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+
+    .btn-danger-outline {
+        background: transparent;
+        border: 1px solid var(--danger);
+        color: var(--danger);
+    }
+
+    .btn-danger-outline:hover {
+        background: var(--danger);
+        color: white;
+    }
+
+    .btn-danger-text {
+        color: var(--danger);
+        background: transparent;
+    }
+
+    .btn-danger-text:hover {
+        background: rgba(239, 68, 68, 0.1);
+    }
+</style>
+{% endblock %}

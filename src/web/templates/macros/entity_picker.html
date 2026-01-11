@@ -1,0 +1,150 @@
+{% macro entity_picker(name, value, label, service_url, placeholder="Search...") %}
+<div class="form-group entity-picker-group">
+    <label class="form-label">{{ label }}</label>
+    <div class="entity-picker-wrapper">
+        <input type="text" class="form-control" id="{{ name }}_display" value="{{ value.get('name', '') }}"
+            placeholder="{{ placeholder }}" autocomplete="off">
+        <input type="hidden" name="{{ name }}" id="{{ name }}" value="{{ value.get('id', '') }}">
+        <div id="{{ name }}_dropdown" class="entity-dropdown hidden"></div>
+    </div>
+</div>
+
+<style>
+    .entity-picker-wrapper {
+        position: relative;
+    }
+
+    .entity-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        z-index: 1000;
+        max-height: 300px;
+        overflow-y: auto;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .entity-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .entity-item:last-child {
+        border-bottom: none;
+    }
+
+    .entity-item:hover,
+    .entity-item.selected {
+        background: var(--accent-primary);
+        color: white;
+    }
+
+    .entity-new {
+        padding: 10px;
+        background: var(--bg-tertiary);
+        border-top: 1px solid var(--border-color);
+        text-align: center;
+    }
+
+    .entity-new button {
+        width: 100%;
+        padding: 8px;
+        font-size: 0.9em;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('{{ name }}_display');
+        const hidden = document.getElementById('{{ name }}');
+        const dropdown = document.getElementById('{{ name }}_dropdown');
+        let debounceTimer;
+
+        input.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            const query = this.value;
+
+            // Clear ID if text changes
+            hidden.value = '';
+
+            if (query.length < 2) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                fetch(`{{ service_url }}?q=${encodeURIComponent(query)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        dropdown.innerHTML = '';
+
+                        if (data.length === 0) {
+                            const noResult = document.createElement('div');
+                            noResult.className = 'entity-item text-muted';
+                            noResult.textContent = 'No results found';
+                            dropdown.appendChild(noResult);
+                        }
+
+                        // Add results
+                        data.forEach(item => {
+                            const div = document.createElement('div');
+                            div.className = 'entity-item';
+                            div.textContent = item.text;
+                            div.onclick = () => {
+                                input.value = item.text;
+                                hidden.value = item.id;
+                                dropdown.classList.add('hidden');
+                            };
+                            dropdown.appendChild(div);
+                        });
+
+                        // Add "Create New" option
+                        const createDiv = document.createElement('div');
+                        createDiv.className = 'entity-new';
+                        createDiv.innerHTML = `<button type="button" class="btn btn-sm btn-outline-primary" onclick="createNewEntity('${query}')">➕ Create '${query}'</button>`;
+                        dropdown.appendChild(createDiv);
+
+                        dropdown.classList.remove('hidden');
+                    });
+            }, 300);
+        });
+
+        // Hide on outside click
+        document.addEventListener('click', (e) => {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+    });
+
+    function createNewEntity(name) {
+        if (!confirm(`Create new artist '${name}'?`)) return;
+
+        const fd = new FormData();
+        fd.append('name', name);
+
+        fetch('/artists/create', {
+            method: 'POST',
+            body: fd
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('{{ name }}_display').value = data.text;
+                    document.getElementById('{{ name }}').value = data.id;
+                    document.getElementById('{{ name }}_dropdown').classList.add('hidden');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+    }
+</script>
+{% endmacro %}

@@ -1,0 +1,22 @@
+{
+    "databases": {
+        "jazler_live": {
+            "type": "access",
+            "path": "\\\\ONAIR\\Jazler RadioStar 2\\Databases\\JZRS2DB-V5.accdb",
+            "default_table": "snDatabase",
+            "description": "Production Jazler database on ONAIR terminal"
+        },
+        "jazler_test": {
+            "type": "access",
+            "path": "C:\\Users\\prodo\\Downloads\\JZRS2DB-V5.accdb",
+            "default_table": "snDatabase",
+            "description": "Local test copy of Jazler database"
+        }
+    },
+    "active_database": "jazler_test",
+    "drive_map": {
+        "b:": "z:"
+    },
+    "base_songs_path": "z:\\songs",
+    "audit_ignore_drive_letters": true
+}

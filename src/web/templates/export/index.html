@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Export Data - DB Toolkit{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>📦 Data Export</h1>
+        <p class="subtitle">Extract your library data for reports, backups, or mobile use.</p>
+    </div>
+</div>
+
+<div class="export-container">
+    <form action="{{ url_for('export.download') }}" method="POST" class="export-form">
+        <div class="export-grid">
+            <!-- Source Selection -->
+            <div class="export-card card">
+                <h3>1. Select Source</h3>
+                <p class="text-secondary small mb-3">Which data do you want to extract?</p>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" name="type" value="songs_all" checked>
+                        <div class="radio-content">
+                            <span class="label-text">All Songs</span>
+                            <span class="desc-text">Full library dump (up to 100k records)</span>
+                        </div>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="type" value="search_results">
+                        <div class="radio-content">
+                            <span class="label-text">Current Search Results</span>
+                            <span class="desc-text">Only the songs from your last search</span>
+                        </div>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="type" value="audit_ghosts">
+                        <div class="radio-content">
+                            <span class="label-text">Audit Ghosts</span>
+                            <span class="desc-text">List of missing/dead files from last audit</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Format Selection -->
+            <div class="export-card card">
+                <h3>2. Choose Format</h3>
+                <p class="text-secondary small mb-3">How do you want the data structured?</p>
+                <div class="format-toggle">
+                    <label class="format-btn">
+                        <input type="radio" name="format" value="csv" checked>
+                        <span class="btn-box">CSV (Excel)</span>
+                    </label>
+                    <label class="format-btn">
+                        <input type="radio" name="format" value="json">
+                        <span class="btn-box">JSON (Dev)</span>
+                    </label>
+                </div>
+
+                <div class="options-group mt-4">
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="resolve_lookups" checked>
+                        <span class="label-text">Resolve Lookups (Show "Rock" instead of ID "5")</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="export-actions">
+            <button type="submit" class="btn btn-primary btn-lg">🚀 Generate & Download</button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .export-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-bottom: 40px;
+    }
+
+    .export-card h3 {
+        margin-bottom: 5px;
+    }
+
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .radio-item {
+        display: flex;
+        gap: 12px;
+        padding: 15px;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .radio-item:hover {
+        border-color: var(--accent-primary);
+    }
+
+    .radio-item input[type="radio"] {
+        margin-top: 4px;
+    }
+
+    .radio-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .label-text {
+        font-weight: 600;
+    }
+
+    .desc-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .format-toggle {
+        display: flex;
+        background: var(--bg-tertiary);
+        border-radius: 8px;
+        padding: 4px;
+        border: 1px solid var(--border-color);
+    }
+
+    .format-btn {
+        flex: 1;
+        cursor: pointer;
+    }
+
+    .format-btn input {
+        display: none;
+    }
+
+    .btn-box {
+        display: block;
+        padding: 10px;
+        text-align: center;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .format-btn input:checked+.btn-box {
+        background: var(--accent-primary);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+    }
+
+    .export-actions {
+        text-align: center;
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem;
+    }
+
+    .mb-3 {
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}

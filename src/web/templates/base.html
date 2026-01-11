@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Database Toolkit{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">🎵 DB Toolkit</h1>
+                <div class="db-status {{ 'live' if is_live else 'test' }}">
+                    {{ db_name }}
+                </div>
+            </div>
+
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('songs.search') }}"
+                        class="{% if request.endpoint == 'songs.search' %}active{% endif %}">📋 Songs</a></li>
+                <li><a href="{{ url_for('lookups.index') }}"
+                        class="{% if request.endpoint and request.endpoint.startswith('lookups.') %}active{% endif %}">📖
+                        Dictionaries</a></li>
+                <li><a href="{{ url_for('sync.index') }}"
+                        class="{% if request.endpoint == 'sync.index' %}active{% endif %}">
+                        🔄 Sync
+                        {% if sync_count > 0 %}
+                        <span class="nav-badge">{{ sync_count }}</span>
+                        {% endif %}
+                    </a></li>
+                <li><a href="{{ url_for('schema.index') }}"
+                        class="{% if request.endpoint == 'schema.index' %}active{% endif %}">📊 Schema</a></li>
+                <li><a href="{{ url_for('audit.index') }}"
+                        class="{% if request.endpoint == 'audit.index' %}active{% endif %}">🔍 Audit</a></li>
+                <li><a href="{{ url_for('export.index') }}"
+                        class="{% if request.endpoint == 'export.index' %}active{% endif %}">📦 Export</a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                {% if db_name != 'Not Connected' %}
+                <form action="{{ url_for('main.toggle_offline') }}" method="POST" class="offline-toggle-form">
+                    <button type="submit" class="btn-offline-mode {{ 'active' if offline_mode else '' }}">
+                        <span class="dot"></span>
+                        Offline Mode: {{ 'ON' if offline_mode else 'OFF' }}
+                    </button>
+                </form>
+                <a href="{{ url_for('main.disconnect') }}" class="btn btn-secondary btn-sm">Disconnect</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
