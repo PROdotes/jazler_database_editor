@@ -3,7 +3,10 @@ from src.web.app import create_app
 
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == 'cli':
-        print("CLI mode not yet implemented in run.py wrapper")
+        # Remove 'cli' from arguments and delegate to cli module
+        from src.cli.__main__ import main as cli_main
+        sys.argv.pop(1)
+        cli_main()
         return
         
     # Default to Web mode

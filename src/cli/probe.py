@@ -36,7 +36,7 @@ def get_backend_for_args(args):
     db_path = db_config.get('path', '')
     
     if not db_path:
-        print(f"❌ No path configured for '{db_key}' in config/connections.json")
+        print(f"[Config] No path configured for '{db_key}' in config/connections.json")
         return None
     
     return AccessBackend(db_path)
@@ -46,7 +46,7 @@ def probe_command(args):
     """Execute the probe command."""
     from src.core.schema import SchemaRegistry
     
-    print("🔍 Database Schema Probe")
+    print("[Probe] Database Schema Probe")
     print("=" * 50)
     
     # Get backend
@@ -55,7 +55,7 @@ def probe_command(args):
         return
     
     db_type = "LIVE" if args.live else "TEST"
-    print(f"📁 Database: {db_type}")
+    print(f"[DB] Database: {db_type}")
     
     # Load schema registry with overrides
     config_path = Path(__file__).parent.parent.parent / 'config' / 'schema_overrides.json'
@@ -74,36 +74,36 @@ def probe_command(args):
                 show_all_tables(registry)
                 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         raise
 
 
 def show_all_tables(registry):
     """Display list of all tables."""
-    print("\n📋 Tables Found:")
+    print("\n[Tables] Tables Found:")
     print("-" * 50)
     
     # Data tables
     data_tables = registry.get_data_tables()
     if data_tables:
-        print("\n📊 Data Tables:")
+        print("\n[Data] Data Tables:")
         for table in sorted(data_tables, key=lambda t: t.name):
             col_count = len(table.get_visible_columns())
             pk = table.primary_key or "?"
-            print(f"  • {table.name} ({col_count} columns, PK: {pk})")
+            print(f"  - {table.name} ({col_count} columns, PK: {pk})")
     
     # Lookup tables
     lookup_tables = registry.get_lookup_tables()
     if lookup_tables:
-        print("\n🔗 Lookup Tables:")
+        print("\n[Lookup] Lookup Tables:")
         for table in sorted(lookup_tables, key=lambda t: t.name):
-            print(f"  • {table.name}")
+            print(f"  - {table.name}")
     
     # Ignored tables
     all_tables = registry.get_tables(include_ignored=True)
     ignored = [t for t in all_tables if t.is_ignored]
     if ignored:
-        print(f"\n⚪ Ignored: {len(ignored)} system tables")
+        print(f"\n[System] Ignored: {len(ignored)} system tables")
     
     print("\n" + "=" * 50)
     print("Tip: Use `probe --test -t TABLE_NAME` for column details")
@@ -114,11 +114,11 @@ def show_table_details(backend, registry, table_name: str, sample_count: int):
     table = registry.get_table(table_name)
     
     if not table:
-        print(f"❌ Table '{table_name}' not found")
+        print(f"Table '{table_name}' not found")
         print("Available tables:", ", ".join(registry.get_table_names(include_ignored=True)))
         return
     
-    print(f"\n📊 Table: {table.name}")
+    print(f"\n[Table] Table: {table.name}")
     if table.display_name:
         print(f"   Display Name: {table.display_name}")
     print(f"   Primary Key: {table.primary_key or 'Unknown'}")
@@ -132,7 +132,7 @@ def show_table_details(backend, registry, table_name: str, sample_count: int):
         pass
     
     # Columns
-    print(f"\n📝 Columns ({len(table.columns)}):")
+    print(f"\n[Fields] Columns ({len(table.columns)}):")
     print("-" * 60)
     print(f"{'#':>3}  {'Column Name':<25} {'Type':<12} {'Display Name'}")
     print("-" * 60)
@@ -142,15 +142,15 @@ def show_table_details(backend, registry, table_name: str, sample_count: int):
         if col.max_length:
             type_str += f"({col.max_length})"
         
-        pk_marker = " 🔑" if col.is_primary_key else ""
-        ignored_marker = " ⚪" if col.is_ignored else ""
+        pk_marker = " [PK]" if col.is_primary_key else ""
+        ignored_marker = " [Ignored]" if col.is_ignored else ""
         display = col.display_name or ""
         
         print(f"{i:>3}  {col.name:<25} {type_str:<12} {display}{pk_marker}{ignored_marker}")
     
     # Sample data
     if sample_count > 0:
-        print(f"\n📄 Sample Data ({sample_count} rows):")
+        print(f"\n[Data] Sample Data ({sample_count} rows):")
         print("-" * 60)
         
         try:

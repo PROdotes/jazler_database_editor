@@ -8,9 +8,9 @@
         },
         "jazler_test": {
             "type": "access",
-            "path": "C:\\Users\\prodo\\Downloads\\JZRS2DB-V5.accdb",
+            "path": "\\\\ONAIR\\Jazler RadioStar 2\\Databases - Copy\\JZRS2DB-V5.accdb",
             "default_table": "snDatabase",
-            "description": "Local test copy of Jazler database"
+            "description": "Official test copy on ONAIR terminal"
         }
     },
     "active_database": "jazler_test",

@@ -121,17 +121,23 @@ def get_backend(app):
     global _services
     if _services['backend'] is None:
         db_name = session.get('db_name', 'jazler_test')
-        connections = app.config['CONNECTIONS']
-        db_config = connections.get('databases', {}).get(db_name, {})
+        # Use session override path if available (common for synced test DB)
+        db_path = session.get('active_db_path')
         
-        if db_config:
-            logger.info(f"Creating backend for database: {db_name}")
-            backend = AccessBackend(db_config['path'])
+        if not db_path:
+            # Fallback to static config
+            connections = app.config['CONNECTIONS']
+            db_config = connections.get('databases', {}).get(db_name, {})
+            db_path = db_config.get('path')
+        
+        if db_path:
+            logger.info(f"Creating backend for database: {db_name} at {db_path}")
+            backend = AccessBackend(db_path)
             try:
                 backend.connect()
                 _services['backend'] = backend
             except Exception as e:
-                logger.error(f"Failed to connect to backend: {e}")
+                logger.error(f"Failed to connect to backend {db_name}: {e}")
     
     return _services['backend']
 

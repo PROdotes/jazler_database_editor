@@ -35,6 +35,30 @@ def connect():
     session['db_name'] = db_name
     session['is_live'] = 'live' in db_name.lower()
     
+    # Auto-sync Test DB from Live if possible
+    if db_name == 'jazler_test':
+        connections = current_app.config['CONNECTIONS']
+        live_config = connections.get('databases', {}).get('jazler_live', {})
+        live_path = live_config.get('path')
+        
+        from src.utils.db_sync import sync_test_db
+        synced_path, was_copied = sync_test_db(live_path)
+        
+        if synced_path:
+            if was_copied:
+                flash("Test DB successfully refreshed from Live terminal.", "success")
+            else:
+                flash("Using existing Test DB copy found in Downloads folder.", "info")
+            session['active_db_path'] = synced_path
+        else:
+            flash("Could not sync Test DB. Using default path.", "warning")
+            db_config = connections.get('databases', {}).get(db_name, {})
+            session['active_db_path'] = db_config.get('path')
+    else:
+        connections = current_app.config['CONNECTIONS']
+        db_config = connections.get('databases', {}).get(db_name, {})
+        session['active_db_path'] = db_config.get('path')
+    
     # Clear cached connections to force reconnect
     reset_services()
     
