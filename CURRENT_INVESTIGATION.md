@@ -1,27 +1,21 @@
 # Investigation Log: Song Save & Persistence
 
 **Date**: 2026-01-12
-**Status**: Paused (User context switching)
+**Status**: Completed
 
-## Current Issue
-User reported potential inconsistency with Database Persistence during the Duration debugging session. 
-- "we need to see why db changes are not being saved"
+## Final Resolution
+The reported "data not saving" issue was confirmed to be an **Environment Mismatch**:
+- The editor was connected to `jazler_test` (Test DB).
+- Use was likely verifying against `jazler_live` (Live DB) in the RadioStar software.
 
-## State of Components
-1. **Schema Aliases**: Fixed (`subcat1` -> `fldCat1b`). Verified working.
-2. **Duration Display**: Fixed rounding issue. UI now shows raw float (`215.5704...`).
-3. **ID3 Logic**: 
-   - Write: Cleared input = `TLEN: 0`.
-   - Read: `TLEN: 0` is now ignored, fallback to physical length.
-4. **Save Route**: 
-   - Indentation bug fixed (Step 1320).
-   - Type coercion (FLOAT/DOUBLE) fixed.
-   - `fields_to_update` logic seems correct but needs final verification.
+## Verification Steps
+1. **Peristence Test**: Programmatic updates (`repro_persistence.py`) confirmed data persists in Access DB.
+2. **Live Test**: Successfully wrote changes to the Live DB via the Offline/Sync workflow.
+3. **Safety Nets Implemented**:
+   - **Config Driven**: App now respects `active_database` from `connections.json` (was hardcoded to test).
+   - **Undo Drafts**: Syncing changes now auto-creates a "Reverse Draft" to allow quick undo.
+   - **Type Safety**: Patched boolean string handling (`'on'` -> `True`) in sync logic.
 
-## Next Query
-When resuming, we must verify:
-1. Does changing a DB field (e.g., Title or Duration) persist after reload?
-2. Did the user's report of "not saving" stem from the "Ghost Value" confusion, or is there a genuine write failure in `AccessBackend`?
-
-## Debug Scripts
-- `debug_song.py` is configured to inspect physical file tags and resolved paths.
+## Next Actions
+- Resume normal development.
+- Ensure `connections.json` is set to user's desired environment (reverted to `jazler_test`).

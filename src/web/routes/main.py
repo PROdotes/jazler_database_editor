@@ -2,7 +2,7 @@
 Main routes - home, database selection.
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash
 from src.web.app import reset_services
 
 main_bp = Blueprint('main', __name__)
