@@ -107,8 +107,17 @@ a:hover {
 }
 
 .db-status.live {
-    background: rgba(239, 68, 68, 0.2);
-    color: var(--danger);
+    background: var(--danger);
+    color: white;
+    font-weight: 700;
+    animation: status-pulse 1.5s infinite;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes status-pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 .nav-menu {
@@ -207,6 +216,38 @@ a:hover {
     padding: 24px 32px;
     overflow-y: auto;
     background: var(--bg-primary);
+    position: relative;
+    padding-top: 0; /* Let banner be at top */
+}
+
+/* Production Warning Banner */
+.prod-warning-banner {
+    background: var(--danger);
+    color: white;
+    padding: 8px 32px;
+    margin: 0 -32px 24px -32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.prod-warning-banner i {
+    font-size: 1.2rem;
+    animation: flash 1s infinite;
+}
+
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
 }
 
 /* Page Header */

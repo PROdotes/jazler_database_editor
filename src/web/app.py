@@ -98,12 +98,14 @@ def create_app():
     app.register_blueprint(lookups_bp, url_prefix='/lookups')
     app.register_blueprint(artists_bp)
     
-    # Context processor for templates
     @app.context_processor
     def inject_globals():
+        db_name = session.get('db_name', 'Not Connected')
+        is_live = 'live' in db_name.lower() or session.get('is_live', False)
+        logger.info(f"Context Processor: db_name={db_name}, is_live={is_live}")
         return dict(
-            db_name=session.get('db_name', 'Not Connected'),
-            is_live=session.get('db_name') == 'station_live',
+            db_name=db_name,
+            is_live=is_live,
             sync_count=get_sync_service(app).count(),
             offline_mode=session.get('offline_mode', False)
         )

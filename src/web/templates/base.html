@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Database Toolkit{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v={{ range(1, 9999) | random }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     {% block extra_css %}{% endblock %}
 </head>
@@ -16,7 +16,8 @@
         <nav class="sidebar">
             <div class="sidebar-header">
                 <h1 class="logo">🎵 DB Toolkit</h1>
-                <div class="db-status {{ 'live' if is_live else 'test' }}">
+                <div class="db-status {{ 'live' if 'live' in db_name|lower else 'test' }}">
+                    <i class="fas {{ 'fa-radiation' if 'live' in db_name|lower else 'fa-flask' }}"></i>
                     {{ db_name }}
                 </div>
             </div>
@@ -55,8 +56,15 @@
             </div>
         </nav>
 
-        <!-- Main Content -->
         <main class="main-content">
+            {% if 'live' in db_name|lower %}
+            <div class="prod-warning-banner">
+                <i class="fas fa-exclamation-triangle"></i>
+                PRODUCTION MODE - ALL EDITS ARE LIVE
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            {% endif %}
+
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             {% for category, message in messages %}
