@@ -24,27 +24,7 @@ class Record:
         print(record.changes)  # {'fldArtist': 'New Artist'}
     """
     
-    # Common field aliases for convenient access
-    FIELD_ALIASES = {
-        'artist': 'fldArtistName',
-        'title': 'fldTitle',
-        'album': 'fldAlbum',
-        'composer': 'fldComposer',
-        'publisher': 'fldLabel',
-        'year': 'fldYear',
-        'filename': 'fldFilename',
-        'filepath': 'fldFilename',
-        'path': 'fldFilename',
-        'genre': 'fldCat1a',
-        'decade': 'fldCat2',
-        'tempo': 'fldCat3',
-        'enabled': 'fldEnabled',
-        'enabled_auto': 'fldEnabledAuto',
-        'isrc': 'fldCDKey',
-        'barcode': 'fldBarCode',
-        'duration': 'fldDuration',
-        'bpm': 'fldBeatsPerMinute',
-    }
+    # FIELD_ALIASES removed - now handled by table schema
     
     def __init__(self, data: Dict[str, Any], schema: Optional[TableDefinition] = None):
         """
@@ -86,16 +66,22 @@ class Record:
         
         name_lower = name.lower().replace(' ', '_')
         
-        # Check aliases first (e.g., 'artist' -> 'fldArtistName')
-        if name_lower in self.FIELD_ALIASES:
-            alias_target = self.FIELD_ALIASES[name_lower]
-            # Resolve alias target recursively or against data?
-            # Alias target is usually the canonical column name (e.g. fldArtistName)
-            # We should check if that canonical name exists (case-insensitive)
-            if alias_target in self._data:
-                return alias_target
-            if alias_target.lower() in self._lower_column_map:
-                return self._lower_column_map[alias_target.lower()]
+        # Check aliases from schema
+        if self._schema and self._schema.aliases:
+            if name_lower in self._schema.aliases:
+                alias_target = self._schema.aliases[name_lower]
+                if alias_target in self._data:
+                    return alias_target
+                if alias_target.lower() in self._lower_column_map:
+                    return self._lower_column_map[alias_target.lower()]
+        
+        # Finally check fuzzy match (remove underscores)
+        fuzzy_name = name_lower.replace('_', '')
+        if fuzzy_name in self._display_to_column:
+            target = self._display_to_column[fuzzy_name]
+            if target in self._data: return target
+            if target.lower() in self._lower_column_map:
+                return self._lower_column_map[target.lower()]
         
         # Try display name lookup
         if name_lower in self._display_to_column:

@@ -142,6 +142,25 @@
                     "fldComments"
                 ]
             }
+        },
+        "snDatabase": {
+            "aliases": {
+                "artist": "fldArtistName",
+                "title": "fldTitle",
+                "album": "fldAlbum",
+                "composer": "fldComposer",
+                "publisher": "fldLabel",
+                "year": "fldYear",
+                "genre": "fldCat1a",
+                "subcat1": "fldCat1b",
+                "subcat2": "fldCat1c",
+                "decade": "fldCat2",
+                "tempo": "fldCat3",
+                "isrc": "fldCDKey",
+                "duration": "fldDuration",
+                "enabled": "fldEnabled",
+                "enabled_auto": "fldEnabledAuto"
+            }
         }
     },
     "grid_views": {

@@ -127,6 +127,8 @@ class SchemaRegistry:
                     table.is_lookup = config.get('is_lookup', False)
                 if 'lookup_config' in config:
                     table.lookup_config = config['lookup_config']
+                if 'aliases' in config:
+                    table.aliases = {k.lower(): v for k, v in config['aliases'].items()}
     
     def get_table(self, name: str) -> Optional[TableDefinition]:
         """Get a table definition by name."""

@@ -12,7 +12,8 @@ def main():
     # Default to Web mode
     print("Starting Web Interface on http://localhost:5000")
     app = create_app()
-    app.run(debug=True, port=5000, use_reloader=False)
+    # Enable reloader so code changes auto-restart the server
+    app.run(debug=True, port=5000, use_reloader=True)
 
 if __name__ == "__main__":
     main()

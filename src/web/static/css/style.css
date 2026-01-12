@@ -739,8 +739,8 @@ a:hover {
 
 .compare-grid {
     display: grid;
-    grid-template-columns: 85px 280px 60px 280px;
-    /* Shrunk label column */
+    grid-template-columns: 85px 280px 110px 280px;
+    /* Expanded bridge column to prevent squishing */
     gap: 12px 0;
     align-items: center;
 }
@@ -784,15 +784,22 @@ a:hover {
     width: 100%;
 }
 
-.field-id3 .readonly-value {
-    padding: 10px 14px;
-    background: var(--bg-tertiary);
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-    min-height: 42px;
-    display: flex;
-    align-items: center;
-    font-size: 0.95rem;
+.field-id3 .id3-input {
+    background: rgba(245, 158, 11, 0.05);
+    /* Subtle warning/orange tint for ID3 tags */
+    border-color: rgba(245, 158, 11, 0.2);
+    color: var(--text-primary);
+}
+
+.field-id3 .id3-input:focus {
+    border-color: var(--warning);
+    background: rgba(245, 158, 11, 0.08);
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.field-id3 .id3-input::placeholder {
+    color: var(--text-muted);
+    opacity: 0.5;
 }
 
 /* The Diff Bridge */
@@ -802,6 +809,52 @@ a:hover {
     align-items: center;
     height: 100%;
     position: relative;
+    gap: 8px;
+    /* Breathing room for sync buttons */
+}
+
+.sync-btn {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    /* Anti-squish */
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--transition);
+    opacity: 0.3;
+    z-index: 3;
+}
+
+.compare-row.mismatch .sync-btn {
+    opacity: 0.8;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.sync-btn:hover {
+    opacity: 1 !important;
+    background: var(--accent-primary);
+    color: white;
+    border-color: var(--accent-primary);
+    transform: scale(1.1);
+}
+
+.sync-btn.pull:hover {
+    background: #3b82f6;
+    /* Blue for 'Pull' */
+    border-color: #3b82f6;
+}
+
+.sync-btn.push:hover {
+    background: #f59e0b;
+    /* Amber for 'Push' to ID3 */
+    border-color: #f59e0b;
 }
 
 /* Horizontal Connector Line */
@@ -828,6 +881,8 @@ a:hover {
 .bridge-icon {
     width: 30px;
     height: 30px;
+    flex-shrink: 0;
+    /* Anti-squish */
     border-radius: 50%;
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
@@ -835,11 +890,11 @@ a:hover {
     align-items: center;
     justify-content: center;
     z-index: 2;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-muted);
     transition: all var(--transition);
     box-shadow: 0 0 0 4px var(--bg-secondary);
-    /* Cut the line behind the icon */
+    /* Cut the bridge line behind icon */
 }
 
 /* Match/Mismatch States */
@@ -870,7 +925,7 @@ a:hover {
     }
 }
 
-.compare-row.mismatch .field-id3 .readonly-value {
+.compare-row.mismatch .field-id3 .id3-input {
     border-color: var(--danger);
     background: rgba(239, 68, 68, 0.05);
 }
@@ -894,7 +949,7 @@ a:hover {
     max-width: 280px;
 }
 
-.field-id3 .readonly-value {
+.field-id3 .form-control {
     width: 100%;
     max-width: 280px;
 }

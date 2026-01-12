@@ -39,7 +39,8 @@ class AudioMetadata:
             tag.tags[ID3Tags.YEAR] = mutagen.id3.TDRC(encoding=3, text=[str(id3_data.year)])
             tag.tags[ID3Tags.GENRE] = mutagen.id3.TCON(encoding=3, text=[id3_data.genres_all])
             try:
-                duration_val = str(int(float(str(id3_data.duration))))
+                # TLEN expects milliseconds, typically integer
+                duration_val = str(int(float(str(id3_data.duration)) * 1000))
             except (ValueError, TypeError):
                 duration_val = "0"
             tag.tags[ID3Tags.DURATION] = mutagen.id3.TLEN(encoding=3, text=[duration_val])

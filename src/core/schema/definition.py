@@ -63,6 +63,7 @@ class TableDefinition:
     is_ignored: bool = False                          # Hide from exploration
     is_lookup: bool = False                           # Is a lookup/category table
     lookup_config: Optional[Dict[str, Any]] = None    # Configuration for lookup UI
+    aliases: Dict[str, str] = field(default_factory=dict) # Field aliases
     
     def get_column(self, name: str) -> Optional[FieldDefinition]:
         """Get a column by name."""

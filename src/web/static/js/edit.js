@@ -21,6 +21,70 @@ function highlightField(field, color = '#1a3a1a') {
 }
 
 /**
+ * Sync data between DB and ID3 fields
+ * @param {string} sourceId - ID of element to read from
+ * @param {string} destId - ID of element to write to
+ */
+function syncField(sourceId, destId) {
+    const source = document.getElementById(sourceId);
+    const dest = document.getElementById(destId);
+
+    if (!source || !dest) return;
+
+    const value = source.tagName === 'INPUT' ? source.value : source.textContent;
+
+    // Normalize value (remove placeholder/dash)
+    let cleanValue = value.trim();
+    if (cleanValue === '—') cleanValue = '';
+
+    if (dest.tagName === 'INPUT') {
+        dest.value = cleanValue;
+        highlightField(dest, '#1a3a3a'); // Teal highlight for sync
+        dest.dispatchEvent(new Event('input')); // Trigger sync check
+    } else {
+        dest.textContent = cleanValue || '—';
+        highlightField(dest, '#1a3a33');
+    }
+}
+
+/**
+ * Specialized sync for duration (handles data-value attribute)
+ */
+function syncDuration(sourceId, destId) {
+    const source = document.getElementById(sourceId);
+    const dest = document.getElementById(destId);
+    if (!source || !dest) return;
+
+    // source is now an input, so use .value
+    const value = source.value;
+    dest.value = value;
+    highlightField(dest, '#1a3a3a');
+    dest.dispatchEvent(new Event('input'));
+}
+
+/**
+ * Specialized sync for Genre (pushes multiple dropdowns to one ID3 field)
+ */
+function syncGenre() {
+    const main = document.getElementById('genre');
+    const sub1 = document.getElementById('subcat1');
+    const sub2 = document.getElementById('subcat2');
+    const dest = document.getElementById('id3-genre');
+
+    if (!main || !dest) return;
+
+    const genres = [
+        main.options[main.selectedIndex].text,
+        sub1 ? sub1.options[sub1.selectedIndex].text : '',
+        sub2 ? sub2.options[sub2.selectedIndex].text : ''
+    ].filter(g => g && g.toLowerCase() !== '(none)' && g.toLowerCase() !== '');
+
+    dest.value = genres.join(', ');
+    highlightField(dest, '#1a3a3a');
+    dest.dispatchEvent(new Event('input'));
+}
+
+/**
  * Update the comparison icon between DB and ID3
  * @param {string} inputId - ID of the database input
  * @param {string} id3Id - ID of the ID3 display element
@@ -37,8 +101,11 @@ function updateSyncStatus(inputId, id3Id) {
     const icon = bridgeIcon ? bridgeIcon.querySelector('i') : null;
 
     // Normalize values for comparison
-    const dbVal = input.value.trim().toLowerCase();
-    const id3Val = id3.textContent.trim().toLowerCase();
+    // DB side might be a div with data-value (Duration) or a regular input
+    const dbValRaw = input.dataset.value !== undefined ? input.dataset.value : (input.value !== undefined ? input.value : input.textContent);
+    const dbVal = dbValRaw.trim().toLowerCase();
+
+    const id3Val = (id3.value !== undefined ? id3.value : id3.textContent).trim().toLowerCase();
 
     // ID3 values of '—' or empty should be treated as empty
     const isEmptyId3 = id3Val === '—' || id3Val === '';
@@ -49,6 +116,45 @@ function updateSyncStatus(inputId, id3Id) {
         match = true;
     } else if (!isEmptyId3) {
         match = (dbVal === id3Val);
+    }
+
+    // Special logic for Genre: ID vs Text (Partial Match across 3 slots from original code)
+    if (inputId === 'genre') {
+        const sub1 = document.getElementById('subcat1');
+        const sub2 = document.getElementById('subcat2');
+
+        const dbGenres = [
+            input.options[input.selectedIndex].text.toLowerCase(),
+            sub1 ? sub1.options[sub1.selectedIndex].text.toLowerCase() : '',
+            sub2 ? sub2.options[sub2.selectedIndex].text.toLowerCase() : ''
+        ].filter(g => g && g !== '(none)' && g !== '');
+
+        const id3Genres = id3Val.split(',').map(g => g.trim().toLowerCase());
+
+        let allFound = true;
+        for (const dbG of dbGenres) {
+            if (dbG === 'za obradu') continue; // Original logic exclusion rule
+
+            let found = false;
+            for (const id3G of id3Genres) {
+                if (id3G.includes(dbG)) { // Partial match: 'zabavne' in 'cro zabavne'
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                allFound = false;
+                break;
+            }
+        }
+        match = allFound;
+    }
+
+    // Special logic for Duration (numeric comparison)
+    if (inputId === 'db-duration-val') {
+        const dbNum = parseFloat(dbVal || 0).toFixed(2);
+        const id3Num = parseFloat(id3Val || 0).toFixed(2);
+        match = (dbNum === id3Num);
     }
 
     // Special logic for Year/Decade: Both must match ID3 AND be consistent with each other
@@ -314,15 +420,24 @@ function setupSyncChecks() {
         { input: 'fldArtistCode_display', id3: 'id3-artist' },
         { input: 'title', id3: 'id3-title' },
         { input: 'album', id3: 'id3-album' },
-        { input: 'year', id3: 'id3-year' }
+        { input: 'year', id3: 'id3-year' },
+        { input: 'composer', id3: 'id3-composer' },
+        { input: 'publisher', id3: 'id3-publisher' },
+        { input: 'isrc', id3: 'id3-isrc' },
+        { input: 'genre', id3: 'id3-genre' },
+        { input: 'duration', id3: 'id3_duration' }
     ];
 
     fields.forEach(pair => {
         const input = document.getElementById(pair.input);
+        const id3Input = document.getElementById(pair.id3);
+
         if (input) {
             input.addEventListener('input', () => updateSyncStatus(pair.input, pair.id3));
+            if (input.tagName === 'SELECT') {
+                input.addEventListener('change', () => updateSyncStatus(pair.input, pair.id3));
+            }
 
-            // Also listen for decade change to update the year row status
             if (pair.input === 'year') {
                 const decadeSelect = document.getElementById('decade');
                 if (decadeSelect) {
@@ -330,7 +445,19 @@ function setupSyncChecks() {
                 }
             }
 
-            // Initial run
+            if (pair.input === 'genre') {
+                const sub1 = document.getElementById('subcat1');
+                const sub2 = document.getElementById('subcat2');
+                if (sub1) sub1.addEventListener('change', () => updateSyncStatus('genre', 'id3-genre'));
+                if (sub2) sub2.addEventListener('change', () => updateSyncStatus('genre', 'id3-genre'));
+            }
+        }
+
+        if (id3Input) {
+            id3Input.addEventListener('input', () => updateSyncStatus(pair.input, pair.id3));
+        }
+
+        if (input || id3Input) {
             updateSyncStatus(pair.input, pair.id3);
         }
     });

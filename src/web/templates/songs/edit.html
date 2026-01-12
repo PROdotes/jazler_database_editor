@@ -44,7 +44,8 @@
             </div>
 
             <!-- Artist -->
-            {% set artist_match = (id3_data and id3_data.artist == song.artist) %}
+            {% set id3_artist = id3_data.get('artist', '') if id3_data else '' %}
+            {% set artist_match = (id3_data and id3_artist == song.artist) %}
             <div class="compare-row {{ 'match' if artist_match else 'mismatch' }}">
                 <div class="field-label">Artist</div>
                 <div class="field-db">
@@ -58,51 +59,74 @@
                     <input type="hidden" name="fldArtistName" value="{{ song.artist }}">
                 </div>
                 <div class="diff-bridge">
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-artist', 'fldArtistCode_display')"><i
+                            class="fas fa-chevron-left"></i></button>
                     <div class="bridge-icon" title="{{ 'Matches' if artist_match else 'Mismatched' }}">
                         <i class="fas {{ 'fa-check' if artist_match else 'fa-sync-alt' }}"></i>
                     </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('fldArtistCode_display', 'id3-artist')"><i
+                            class="fas fa-chevron-right"></i></button>
                 </div>
                 <div class="field-id3">
-                    <div class="readonly-value" id="id3-artist">{{ id3_data.artist if id3_data else '—' }}</div>
+                    <input type="text" id="id3-artist" name="id3_artist"
+                        value="{{ id3_data.get('artist', '') if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
                 </div>
             </div>
 
             <!-- Title -->
-            {% set title_match = (id3_data and id3_data.title == song.title) %}
+            {% set id3_title = id3_data.get('title', '') if id3_data else '' %}
+            {% set title_match = (id3_data and id3_title == song.title) %}
             <div class="compare-row {{ 'match' if title_match else 'mismatch' }}">
                 <div class="field-label">Title</div>
                 <div class="field-db">
                     <input type="text" id="title" name="title" value="{{ song.title or '' }}" class="form-control">
                 </div>
                 <div class="diff-bridge">
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-title', 'title')"><i class="fas fa-chevron-left"></i></button>
                     <div class="bridge-icon" title="{{ 'Matches' if title_match else 'Mismatched' }}">
                         <i class="fas {{ 'fa-check' if title_match else 'fa-sync-alt' }}"></i>
                     </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('title', 'id3-title')"><i class="fas fa-chevron-right"></i></button>
                 </div>
                 <div class="field-id3">
-                    <div class="readonly-value" id="id3-title">{{ id3_data.title if id3_data else '—' }}</div>
+                    <input type="text" id="id3-title" name="id3_title"
+                        value="{{ id3_data.get('title', '') if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
                 </div>
             </div>
 
             <!-- Album -->
-            {% set album_match = (id3_data and id3_data.album == song.album) %}
+            {% set id3_album = id3_data.get('album', '') if id3_data else '' %}
+            {% set album_match = (id3_data and id3_album == song.album) %}
             <div class="compare-row {{ 'match' if album_match else 'mismatch' }}">
                 <div class="field-label">Album</div>
                 <div class="field-db">
                     <input type="text" id="album" name="album" value="{{ song.album or '' }}" class="form-control">
                 </div>
                 <div class="diff-bridge">
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-album', 'album')"><i class="fas fa-chevron-left"></i></button>
                     <div class="bridge-icon" title="{{ 'Matches' if album_match else 'Mismatched' }}">
                         <i class="fas {{ 'fa-check' if album_match else 'fa-sync-alt' }}"></i>
                     </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('album', 'id3-album')"><i class="fas fa-chevron-right"></i></button>
                 </div>
                 <div class="field-id3">
-                    <div class="readonly-value" id="id3-album">{{ id3_data.album if id3_data else '—' }}</div>
+                    <input type="text" id="id3-album" name="id3_album"
+                        value="{{ id3_data.get('album', '') if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
                 </div>
             </div>
 
             <!-- Year / Decade -->
-            {% set year_match = (id3_data and id3_data.year|string == song.year|string) %}
+            {% set id3_year = id3_data.get('year', '') if id3_data else '' %}
+            {% set year_match = (id3_data and id3_year|string == song.year|string) %}
             <div class="compare-row {{ 'match' if year_match else 'mismatch' }}">
                 <div class="field-label">Year / Decade</div>
                 <div class="field-db" title="Year and Decade are linked">
@@ -111,8 +135,8 @@
                             min="1900" max="2099" style="flex: 1;">
                         <select id="decade" name="decade" class="form-control" style="flex: 1.5;">
                             <option value="">(Decade)</option>
-                            {% for id, name in decade_map.items() %}
-                            {% if id != 0 %}
+                            {% for id, name in decade_map|dictsort(false, 'value') %}
+                            {% if id|int != 0 and name %}
                             <option value="{{ id }}" {% if song.decade==id %}selected{% endif %}>{{ name }}</option>
                             {% endif %}
                             {% endfor %}
@@ -120,66 +144,134 @@
                     </div>
                 </div>
                 <div class="diff-bridge">
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-year', 'year')"><i class="fas fa-chevron-left"></i></button>
                     <div class="bridge-icon" title="{{ 'Matches' if year_match else 'Mismatched' }}">
                         <i class="fas {{ 'fa-check' if year_match else 'fa-sync-alt' }}"></i>
                     </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('year', 'id3-year')"><i class="fas fa-chevron-right"></i></button>
                 </div>
                 <div class="field-id3">
-                    <div class="readonly-value" id="id3-year">{{ id3_data.year if id3_data else '—' }}</div>
+                    <input type="text" id="id3-year" name="id3_year"
+                        value="{{ id3_data.get('year', '') if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
                 </div>
             </div>
 
-            <!-- Composer (Only DB for now, but aligned) -->
-            <div class="compare-row only-db">
+            <!-- Composer -->
+            {% set composer_match = (id3_data and id3_data.get('composer') == song.composer) %}
+            <div class="compare-row {{ 'match' if composer_match else 'mismatch' }}">
                 <div class="field-label">Composer</div>
-                <div class="field-db">
+                <div class="field-db" title="Composer is primarily for internal database">
                     <input type="text" id="composer" name="composer" value="{{ song.composer or '' }}"
                         class="form-control">
                 </div>
                 <div class="diff-bridge">
-                    <div class="bridge-icon"></div>
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-composer', 'composer')"><i class="fas fa-chevron-left"></i></button>
+                    <div class="bridge-icon" title="{{ 'Matches' if composer_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if composer_match else 'fa-sync-alt' }}"></i>
+                    </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('composer', 'id3-composer')"><i class="fas fa-chevron-right"></i></button>
                 </div>
-                <div class="field-id3"></div>
+                <div class="field-id3">
+                    <input type="text" id="id3-composer" name="id3_composer"
+                        value="{{ id3_data.composer if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
+                </div>
             </div>
 
             <!-- Publisher -->
-            <div class="compare-row only-db">
+            {% set publisher_match = (id3_data and id3_data.get('publisher') == song.publisher) %}
+            <div class="compare-row {{ 'match' if publisher_match else 'mismatch' }}">
                 <div class="field-label">Publisher</div>
-                <div class="field-db">
+                <div class="field-db" title="Publisher/Label">
                     <input type="text" id="publisher" name="publisher" value="{{ song.publisher or '' }}"
                         class="form-control">
                 </div>
                 <div class="diff-bridge">
-                    <div class="bridge-icon"></div>
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-publisher', 'publisher')"><i class="fas fa-chevron-left"></i></button>
+                    <div class="bridge-icon" title="{{ 'Matches' if publisher_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if publisher_match else 'fa-sync-alt' }}" id="icon-publisher"></i>
+                    </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('publisher', 'id3-publisher')"><i class="fas fa-chevron-right"></i></button>
                 </div>
-                <div class="field-id3"></div>
+                <div class="field-id3">
+                    <input type="text" id="id3-publisher" name="id3_publisher"
+                        value="{{ id3_data.publisher if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
+                </div>
+            </div>
+
+            <!-- ISRC -->
+            {% set isrc_match = (id3_data and id3_data.get('isrc') == song.isrc) %}
+            <div class="compare-row {{ 'match' if isrc_match else 'mismatch' }}">
+                <div class="field-label">ISRC</div>
+                <div class="field-db">
+                    <input type="text" id="isrc" name="isrc" value="{{ song.isrc or '' }}" class="form-control mono"
+                        placeholder="XX-XXX-YY-NNNNN">
+                </div>
+                <div class="diff-bridge">
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3-isrc', 'isrc')"><i class="fas fa-chevron-left"></i></button>
+                    <div class="bridge-icon" title="{{ 'Matches' if isrc_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if isrc_match else 'fa-sync-alt' }}"></i>
+                    </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncField('isrc', 'id3-isrc')"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="field-id3">
+                    <input type="text" id="id3-isrc" name="id3_isrc" value="{{ id3_data.isrc if id3_data else '' }}"
+                        placeholder="—" class="form-control id3-input mono">
+                </div>
             </div>
 
             <!-- Genres -->
-            <div class="compare-row only-db">
+            {% set db_genre_name = genre_map.get(song.genre|int, '') %}
+            {% set id3_genre_val = id3_data.get('genre', '') if id3_data else '' %}
+            {% set genre_match = (id3_genre_val == db_genre_name) %}
+            <div class="compare-row {{ 'match' if genre_match else 'mismatch' }}">
                 <div class="field-label">Genres</div>
                 <div class="field-db">
                     <div class="field-row">
-                        <select name="genre" class="form-control" title="Primary Genre (Cat1a)">
-                            {% for id, name in genre_map.items() %}<option value="{{ id }}" {% if song.genre==id
-                                %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                        <select id="genre" name="genre" class="form-control" title="Primary Genre (Cat1a)">
+                            {% for id, name in genre_map|dictsort(false, 'value') %}
+                            {% if name %}<option value="{{ id }}" {% if song.genre==id %}selected{% endif %}>{{ name }}
+                            </option>{% endif %}
+                            {% endfor %}
                         </select>
-                        <select name="subcat1" class="form-control" title="Secondary Genre (Cat1b)">
+                        <select id="subcat1" name="subcat1" class="form-control" title="Secondary Genre (Cat1b)">
                             <option value="">(None)</option>
-                            {% for id, name in genre_map.items() %}<option value="{{ id }}" {% if song['fldCat1b']==id
-                                %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                            {% for id, name in genre_map|dictsort(false, 'value') %}
+                            {% if name %}<option value="{{ id }}" {% if song['fldCat1b']==id %}selected{% endif %}>{{
+                                name }}</option>{% endif %}
+                            {% endfor %}
                         </select>
-                        <select name="subcat2" class="form-control" title="Tertiary Genre (Cat1c)">
+                        <select id="subcat2" name="subcat2" class="form-control" title="Tertiary Genre (Cat1c)">
                             <option value="">(None)</option>
-                            {% for id, name in genre_map.items() %}<option value="{{ id }}" {% if song['fldCat1c']==id
-                                %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                            {% for id, name in genre_map|dictsort(false, 'value') %}
+                            {% if name %}<option value="{{ id }}" {% if song['fldCat1c']==id %}selected{% endif %}>{{
+                                name }}</option>{% endif %}
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
                 <div class="diff-bridge">
-                    <div class="bridge-icon"></div>
+                    <div class="bridge-icon" title="{{ 'Matches Tag' if genre_match else 'Mismatched Tag' }}">
+                        <i class="fas {{ 'fa-check' if genre_match else 'fa-sync-alt' }}"></i>
+                    </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3" onclick="syncGenre()"><i
+                            class="fas fa-chevron-right"></i></button>
                 </div>
-                <div class="field-id3"></div>
+                <div class="field-id3">
+                    <input type="text" id="id3-genre" name="id3_genre"
+                        value="{{ id3_data.get('genre', '') if id3_data else '' }}" placeholder="—"
+                        class="form-control id3-input">
+                </div>
             </div>
 
             <!-- Tempo & Status -->
@@ -214,6 +306,31 @@
                     <div class="bridge-icon"></div>
                 </div>
                 <div class="field-id3"></div>
+            </div>
+
+            <!-- Duration -->
+            {% set db_dur = (song.duration|float)|round(2) %}
+            {% set id3_dur = (id3_data.get('duration', 0)|float) if id3_data else 0 %}
+            {% set dur_match = (db_dur == id3_dur) %}
+            <div class="compare-row {{ 'match' if dur_match else 'mismatch' }}">
+                <div class="field-label">Duration</div>
+                <div class="field-db" id="db-duration-val" data-value="{{ display_data.duration_raw }}">
+                    <input type="text" id="duration" name="duration" value="{{ display_data.duration_raw }}"
+                        class="form-control mono">
+                </div>
+                <div class="diff-bridge">
+                    <button type="button" class="sync-btn pull" title="Pull from ID3"
+                        onclick="syncField('id3_duration', 'duration')"><i class="fas fa-chevron-left"></i></button>
+                    <div class="bridge-icon" title="{{ 'Durs Match' if dur_match else 'Drift Detected' }}">
+                        <i class="fas {{ 'fa-check' if dur_match else 'fa-clock' }}"></i>
+                    </div>
+                    <button type="button" class="sync-btn push" title="Push to ID3"
+                        onclick="syncDuration('duration', 'id3_duration')"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="field-id3">
+                    <input type="text" id="id3_duration" name="id3_duration" value="{{ id3_dur }}"
+                        class="form-control id3-input mono">
+                </div>
             </div>
         </div>
     </div>

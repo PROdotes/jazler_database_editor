@@ -160,7 +160,9 @@ class SongService:
         """
         fields = []
         # Create reverse alias map for friendly URLs
-        reverse_aliases = {v: k for k, v in self.FIELD_ALIASES.items()}
+        reverse_aliases = {}
+        if self._schema and self._schema.aliases:
+            reverse_aliases = {v: k for k, v in self._schema.aliases.items()}
         
         for col in self._schema.columns:
             if col.display_name and not col.is_ignored:
@@ -210,25 +212,7 @@ class SongService:
         records = [self._row_to_record(row) for row in rows]
         return RecordSet(records)
     
-    # Common field aliases for convenience
-    FIELD_ALIASES = {
-        'artist': 'fldArtistName',
-        'title': 'fldTitle',
-        'album': 'fldAlbum',
-        'composer': 'fldComposer',
-        'publisher': 'fldLabel',
-        'year': 'fldYear',
-        'filename': 'fldFilename',
-        'filepath': 'fldFilename',
-        'path': 'fldFilename',
-        'genre': 'fldCat1a',
-        'decade': 'fldCat2',
-        'tempo': 'fldCat3',
-        'enabled': 'fldEnabled',
-        'isrc': 'fldISRC',
-        'duration': 'fldDuration',
-        'bpm': 'fldBeatsPerMinute',
-    }
+    # FIELD_ALIASES removed - now handled by table schema
     
     def _resolve_field_name(self, field: str) -> str:
         """
@@ -255,9 +239,10 @@ class SongService:
             if col.display_name and col.display_name.lower() == field_lower:
                 return col.name
                 
-        # Check aliases second
-        if field_lower in self.FIELD_ALIASES:
-            return self.FIELD_ALIASES[field_lower]
+        # Check aliases from schema
+        if self._schema and self._schema.aliases:
+            if field_lower in self._schema.aliases:
+                return self._schema.aliases[field_lower]
         
         # Check simplified name (fldArtistName -> artistname)
         for col in self._schema.columns:
@@ -405,4 +390,6 @@ class SongService:
             'genre_display': ', '.join(genres),
             'decade_display': self.resolve_decade(cat2),
             'tempo_display': self.resolve_tempo(cat3),
+            # Pass raw duration for precision sync
+            'duration_raw': data.get('fldDuration', 0.0)
         }

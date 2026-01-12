@@ -7,6 +7,8 @@ import logging
 from pathlib import Path
 from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash
 from src.web.app import get_song_service, get_media_service, get_sync_service
+from src.utils.audio import AudioMetadata
+from src.models.song import SongID3
 
 logger = logging.getLogger(__name__)
 songs_bp = Blueprint('songs', __name__)
@@ -177,55 +179,87 @@ def save(song_id):
     
     fields_to_update = {}
     
-    # Text & Boolean fields
-    for field in ['title', 'album', 'composer', 'publisher', 'isrc']:
-        form_value = request.form.get(field, '').strip()
-        current_value = getattr(song, field, '') or ''
-        
-        # Special handling for ISRC (allow null)
-        if field == 'isrc' and not form_value:
-            form_value = None
-
-        if form_value != current_value:
-            fields_to_update[service._resolve_field_name(field)] = form_value
+    # Dynamically process form fields based on schema
+    # This avoids hardcoding lists like ['title', 'album', ...]
+    table_def = service._schema
+    if table_def:
+        for form_key in request.form:
+            # Skip internal/special fields
+            if form_key.startswith('id3_') or form_key in ['rename_physical', 'next_action']:
+                continue
+                
+            db_col = service._resolve_field_name(form_key)
+            # Only process if it resolves to a known column in this table
+            col_def = table_def.get_column(db_col)
+            if not col_def:
+                continue
             
-    # Toggles (Enabled, EnabledAuto)
+            # Get values
+            form_value = request.form.get(form_key)
+            current_value = song[db_col]
+            
+            # 1. Handle Checkboxes (Toggles)
+            # Checkbox is 'on' if checked, missing from request.form if not
+            # But since we're iterating request.form, we only see 'on'
+            # (Wait, actually we need to handle the checkboxes correctly since they won't be in request.form if off)
+            # Actually, standard way is to have a hidden field or check all known toggle columns
+            
+            # Let's handle regular text/numeric fields first
+            processed_value = form_value.strip() if isinstance(form_value, str) else form_value
+            
+            # Type coercion based on schema
+            ctype = col_def.type_name.upper()
+            if ctype in ('INTEGER', 'SHORT', 'LONG'):
+                try: 
+                    processed_value = int(processed_value) if processed_value else 0
+                except: 
+                    continue
+            elif ctype in ('FLOAT', 'DOUBLE', 'REAL', 'NUMERIC', 'SINGLE'):
+                try:
+                    processed_value = float(processed_value) if processed_value else 0.0
+                except:
+                    continue
+            
+            # Special case for ISRC (allow null)
+            if form_key == 'isrc' and not processed_value:
+                processed_value = None
+
+            if processed_value != current_value:
+                fields_to_update[db_col] = processed_value
+    
+    # Debug logging
+    print(f"DEBUG: fields_to_update = {fields_to_update}")
+
+    # Handle Checkboxes (Toggles) - these won't be in request.form if unchecked
+    # We look for specific known toggles or use the schema to find BIT/BOOLEAN fields
     toggles = {
         'enabled': 'fldEnabled',
         'enabled_auto': 'fldEnabledAuto'
     }
-    
     for form_key, db_col in toggles.items():
         is_on = request.form.get(form_key) == 'on'
-        # Get current value (handle None as False)
-        current_val = bool(getattr(song, form_key.replace('_', ''), False) or False)
-        
+        current_val = bool(song[db_col] or False)
         if is_on != current_val:
             fields_to_update[db_col] = is_on
-
-    # Numeric/Lookup fields
-    # We use resolve_field_name so we respect the schema registry
-    numeric_fields = ['year', 'genre', 'subcat1', 'subcat2', 'decade', 'tempo']
-    
-    for field in numeric_fields:
-        val_str = request.form.get(field, '').strip()
-        db_col = service._resolve_field_name(field)
-        
-        try:
-            val_int = int(val_str) if val_str else 0
-            
-            # Record access via db_col
-            current_val = song[db_col] or 0
-            
-            if val_int != current_val:
-                fields_to_update[db_col] = val_int
-        except ValueError:
-            pass # Ignore invalid numbers
     
     media_service = get_media_service(current_app)
     rename_physical = request.form.get('rename_physical') == 'on'
     
-    if fields_to_update or rename_physical:
+    # Collect ID3 tags for physical write
+    id3_form = {
+        'artist': request.form.get('id3_artist', '').strip(),
+        'title': request.form.get('id3_title', '').strip(),
+        'album': request.form.get('id3_album', '').strip(),
+        'year': request.form.get('id3_year', '0').strip(),
+        'composer': request.form.get('id3_composer', '').strip(),
+        'publisher': request.form.get('id3_publisher', '').strip(),
+        'isrc': request.form.get('id3_isrc', '').strip(),
+        'genre': request.form.get('id3_genre', '').strip(),
+        'duration': request.form.get('id3_duration', '0').strip(),
+    }
+    has_id3_data = 'id3_artist' in request.form
+
+    if fields_to_update or rename_physical or has_id3_data:
         sync_service = get_sync_service(current_app)
         try:
             if rename_physical:
@@ -240,16 +274,51 @@ def save(song_id):
                     new_db_path = os.path.join(os.path.dirname(song.filename), new_name).replace('/', '\\')
                     fields_to_update['fldFilename'] = new_db_path
 
+            # Write ID3 tags if not in offline mode
+            offline_mode = session.get('offline_mode', False)
+            if has_id3_data and not offline_mode:
+                try:
+                    # Resolve path (use new path if renamed)
+                    filepath = media_service.resolve_path(fields_to_update.get('fldFilename', song.filename))
+                    
+                    if os.path.exists(filepath):
+                        # Convert year and duration
+                        id3_year = 0
+                        try: id3_year = int(id3_form['year'])
+                        except: pass
+                        
+                        id3_dur = 0.0
+                        try: id3_dur = float(id3_form['duration'])
+                        except: pass
+                        
+                        id3_obj = SongID3(
+                            artist=id3_form['artist'],
+                            title=id3_form['title'],
+                            composer=id3_form['composer'],
+                            album=id3_form['album'],
+                            year=id3_year,
+                            genres=id3_form['genre'],
+                            publisher=id3_form['publisher'],
+                            isrc=id3_form['isrc'],
+                            duration=id3_dur,
+                            key="false", # Default to false for now
+                            error=""
+                        )
+                        AudioMetadata.tag_write(id3_obj, filepath)
+                        flash('ID3 tags written to file', 'success')
+                except Exception as id3_err:
+                    logger.error(f"ID3 write failed: {id3_err}")
+                    flash(f'ID3 write failed: {str(id3_err)}', 'warning')
+
             if fields_to_update:
-                offline_mode = session.get('offline_mode', False)
                 if offline_mode:
                     sync_service.queue_change(song_id, song.artist, song.title, fields_to_update)
                     flash(f'Offline Mode: Changes for #{song_id} queued.', 'info')
                 else:
                     try:
                         success = service.backend.update(service._table, song_id, fields_to_update, primary_key_column=service.DEFAULT_PK)
-                        if success: flash(f'Song #{song_id} saved successfully!', 'success')
-                        else: flash('No changes were made', 'warning')
+                        if success: flash(f'Song #{song_id} database record updated!', 'success')
+                        else: flash('No database changes were made', 'warning')
                     except Exception as db_err:
                         # Fallback to queue if DB fails (e.g. connection lost)
                         sync_service.queue_change(song_id, song.artist, song.title, fields_to_update)
@@ -438,12 +507,43 @@ def read_id3_tags(filepath: str) -> dict:
         from mutagen.easyid3 import EasyID3
         from mutagen.mp3 import MP3
         audio = MP3(filepath, ID3=EasyID3)
+        
+        # Duration preference: TLEN (Metadata override) > info.length (Physical scan)
+        try:
+            # TLEN is in milliseconds
+            tlen_ms = audio.get('TLEN', [None])[0]
+            if tlen_ms and str(tlen_ms).strip() not in ('0', ''):
+                duration = float(tlen_ms) / 1000.0
+            else:
+                raise ValueError("No or Zero TLEN")
+        except:
+            # Fallback to physical length (full float precision)
+            duration = getattr(audio.info, 'length', 0.0)
+        
+        # EasyID3 might not have ISRC/BPM by default, but we can try 
+        # as it sometimes maps them if custom mappings were added.
+        # Otherwise we'd need full ID3, but let's stick to Easy for now or fallback.
+        try:
+            isrc = audio.get('isrc', [''])[0]
+        except:
+            isrc = ''
+            
+        try:
+            bpm = audio.get('bpm', [''])[0]
+        except:
+            bpm = ''
+
         return {
-            'artist': audio.get('artist', [None])[0],
-            'title': audio.get('title', [None])[0],
-            'album': audio.get('album', [None])[0],
-            'year': audio.get('date', [None])[0],
-            'genre': audio.get('genre', [None])[0],
+            'artist': audio.get('artist', [''])[0],
+            'title': audio.get('title', [''])[0],
+            'album': audio.get('album', [''])[0],
+            'year': audio.get('date', [''])[0],
+            'genre': audio.get('genre', [''])[0],
+            'composer': audio.get('composer', [''])[0],
+            'publisher': audio.get('organization', [''])[0],
+            'isrc': isrc,
+            'duration': duration,
+            'bpm': bpm
         }
     except Exception as e:
         logger.debug(f"ID3 read failed: {e}")
