@@ -650,37 +650,46 @@ Exports should not be random column dumps. They should use the same "View" logic
 
 ---
 
-### 📓 Phase 8.5: Lookup Table Management (Generic) ✅
-**Goal:** Manage Genre, Decade, Tempo, and other lookup tables dynamically without hardcoding routes for each.
+### 📚 Phase 8.5: Dictionary & Lookup Management
+**Goal:** Unified management of all reference data (Genres, Categories, Artists) with a dedicated strategy for complex entities.
 
-**Core Concept:**
-Use `SchemaRegistry` metadata to generate simple CRUD pages for simple tables.
+**Concept: "The Dictionary System"**
+Jazler relies on auxiliary tables to store reference data. To manage these effectively within the `ms_database_sync_app` architecture, we distinguish between two types of dictionaries:
 
-**Implementation:**
-*   **Registry:** Enhanced with `is_lookup` flag and `lookup_config` (display columns, sort order).
-*   **Grid:** `grid_views` config in `connections.json` (actually `schema_overrides.json`) drives the list view.
-*   **Forms:** `SchemaRegistry` provides field definitions to render forms dynamically.
-*   **Generic Routes:** `/lookups/<table_name>` handles list, create, edit, delete.
+#### 1. Simple Dictionaries (e.g., `snCat1` Genre, `snCat2` Decade)
+*   **Characteristics:** Simple Key-Value pairs (ID -> Label).
+*   **Usage:** Populates dropdowns in the Song Editor.
+*   **Management Strategy:** Generic CRUD.
+    *   **Dashboard:** `/lookups/` (List of all dictionaries)
+    *   **Controller:** Generic `LookupController` handles any table defined in `schema_overrides.json` with `is_lookup=True`.
 
-**Status:** Completed 100% ✅
-*   Verified dynamic CRUD for Genre (snCat1) and similar tables.
-*   "Edit" page supports deletion (with confirmation).
-*   "List" page supports dynamic columns.
-    *   Example `lookup_config` for `snCat1`:
-    ```json
-"tables": {
-    "snCat1": {
-        "display_name": "Genre",
-        "is_lookup": true,
-        "lookup_config": {
-            "key_column": "AUID",         # The primary key
-            "display_column": "fldMusicType", # The text to show in dropdowns/grids
-            "sort_column": "fldMusicType",    # Default sort order
-            "grid_columns": ["AUID", "fldMusicType", "fldComments"] # Columns to show in editor
-        }
-    }
-}
-```
+#### 2. Complex Dictionaries (e.g., `snArtists`)
+*   **Characteristics:** Entities with metadata (Surname, Type) and heavy usage.
+*   **The Propagation Challenge:**
+    *   Jazler denormalizes artist names into `snDatabase` (`fldArtistName`).
+    *   **Renaming Risk:** Changing a name in `snArtists` *without* updating `snDatabase` creates "Ghost Data" (songs linked to an ID but showing the old name).
+*   **Management Strategy:** Specialized Service.
+    *   **Dashboard:** `/dictionaries/artists`
+    *   **Service:** `ArtistService` (extends Lookup capabilities)
+    *   **Tools:**
+        *   **Orphan Detection:** Identify artists with 0 linked songs.
+        *   **Merge Tool:** Consolidate duplicates (e.g., "Beatles" -> "The Beatles") and update all linked songs.
+
+---
+
+### ✅ Implementation Status (Phase 8.5)
+**1. Generic Infrastructure (Completed)**
+*   **Registry:** Updated `schema_overrides.json` with `lookup_config` for Cat1/2/3.
+*   **Service:** `LookupService` implemented.
+*   **UI:** Created generic `/lookups` routes for Index and Grid views.
+
+**2. Artist Extensions (In Progress)**
+*   **Structure:** Defined "Dictionaries" as a core menu concept.
+*   **Next Steps:**
+    *   [ ] Implement `ArtistService.get_usage_counts()` for Orphan detection.
+    *   [ ] Create Artist Manager UI with "Songs Count" column.
+    *   [ ] Implement "Merge Artist" workflow.
+
 
 **2. Registry API Contract (`SchemaRegistry`):**
 *   `get_lookup_tables() -> List[TableDefinition]`: Returns all table definitions where `is_lookup` is True.

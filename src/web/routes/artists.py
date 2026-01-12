@@ -32,3 +32,14 @@ def create():
         return jsonify({'id': new_id, 'text': name, 'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@bp.route('/')
+def index():
+    """Artist Manager Dashboard."""
+    service = get_artist_service(current_app)
+    # Default limit 1000 for performance, maybe paginate later
+    valid_limit = 2000 
+    
+    artists = service.get_all_with_counts(limit=valid_limit)
+    
+    return render_template('artists/index.html', artists=artists)

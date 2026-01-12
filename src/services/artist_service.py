@@ -80,3 +80,34 @@ class ArtistService:
             data,
             primary_key_column="AUID"
         )
+
+    def get_all_with_counts(self, limit: int = 2000) -> List[Dict[str, Any]]:
+        """
+        Get all artists with a count of their linked songs.
+        """
+        # Exclude known corrupted row (ID 367806)
+        query = f"""
+            SELECT TOP {limit} a.AUID, a.fldName, COUNT(s.fldArtistCode) as song_count
+            FROM snArtists a
+            LEFT JOIN snDatabase s ON a.AUID = s.fldArtistCode
+            WHERE a.AUID <> 367806
+            GROUP BY a.AUID, a.fldName
+            ORDER BY a.fldName
+        """
+
+        try:
+            logger.info(f"ArtistService: Executing query with limit {limit}")
+            rows = self.backend.execute_raw(query)
+            logger.info(f"ArtistService: Query returned {len(rows)} rows")
+            
+            results = []
+            for row in rows:
+                results.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'count': row[2]
+                })
+            return results
+        except Exception as e:
+            logger.error(f"Failed to get artist counts: {e}", exc_info=True)
+            return []

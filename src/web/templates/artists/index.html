@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Artist Manager{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>👨‍🎤 Artist Manager</h1>
+        <p class="text-muted mb-0">Manage artists, find orphans, and merge duplicates.</p>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        <button type="button" class="btn btn-outline-danger" id="btnShowOrphans" data-active="false">
+            <i class="fas fa-filter me-2"></i>Show Orphans Only
+        </button>
+        <div class="input-group" style="width: 250px;">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" id="artistSearch" class="form-control" placeholder="Filter artists...">
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        {% if artists %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="artistTable">
+                <thead class="bg-light">
+                    <tr>
+                        <th style="width: 60px; padding-left: 20px;">ID</th>
+                        <th>Artist Name</th>
+                        <th style="width: 150px;" class="text-center">Songs Used</th>
+                        <th style="width: 150px;" class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artist in artists %}
+                    <tr class="artist-row" data-count="{{ artist.count }}">
+                        <td class="text-muted small ps-4">{{ artist.id }}</td>
+                        <td class="fw-bold text-primary">{{ artist.name }}</td>
+                        <td class="text-center">
+                            {% if artist.count == 0 %}
+                            <span class="badge bg-danger rounded-pill px-3">0 Orphans</span>
+                            {% else %}
+                            <span class="badge bg-light text-dark border rounded-pill px-3">{{ artist.count }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <button class="btn btn-sm btn-link text-secondary" title="Rename"
+                                onclick="editArtist({{ artist.id }}, '{{ artist.name|replace("'", "\\'") }}')">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                            <button class="btn btn-sm btn-link text-warning" title="Merge"
+                                onclick="mergeArtist({{ artist.id }}, '{{ artist.name|replace("'", "\\'") }}')">
+                                <i class="fas fa-code-branch"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-ghost fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No artists found.</h4>
+            <p class="text-muted">Check database connection or try increasing the limit.</p>
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-footer bg-light text-muted small ps-4">
+        Showing {{ artists|length }} artists.
+    </div>
+</div>
+
+<!-- Simple Filter Script -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('artistSearch');
+        const orphanBtn = document.getElementById('btnShowOrphans');
+        const rows = document.querySelectorAll('.artist-row');
+
+        // Toggle Button Logic
+        if (orphanBtn) {
+            orphanBtn.addEventListener('click', function () {
+                const isActive = this.getAttribute('data-active') === 'true';
+                const newState = !isActive;
+
+                this.setAttribute('data-active', newState);
+                if (newState) {
+                    this.classList.remove('btn-outline-danger');
+                    this.classList.add('btn-danger', 'active');
+                    this.innerHTML = '<i class="fas fa-filter me-2"></i>Showing Orphans Only';
+                } else {
+                    this.classList.remove('btn-danger', 'active');
+                    this.classList.add('btn-outline-danger');
+                    this.innerHTML = '<i class="fas fa-filter me-2"></i>Show Orphans Only';
+                }
+
+                filterTable();
+            });
+        }
+
+        function filterTable() {
+            const query = searchInput.value.toLowerCase();
+            const showOrphans = orphanBtn ? orphanBtn.getAttribute('data-active') === 'true' : false;
+
+            rows.forEach(row => {
+                const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const count = parseInt(row.getAttribute('data-count'));
+
+                let visible = true;
+
+                if (query && !name.includes(query)) visible = false;
+                if (showOrphans && count > 0) visible = false;
+
+                row.style.display = visible ? '' : 'none';
+            });
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('keyup', filterTable);
+        }
+
+        // Placeholder functions for actions
+        window.editArtist = function (id, name) {
+            alert("Rename feature coming next! ID: " + id);
+        };
+
+        window.mergeArtist = function (id, name) {
+            alert("Merge feature coming next! ID: " + id);
+        };
+    });
+</script>
+{% endblock %}

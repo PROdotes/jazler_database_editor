@@ -25,6 +25,9 @@
             <ul class="nav-menu">
                 <li><a href="{{ url_for('songs.search') }}"
                         class="{% if request.endpoint == 'songs.search' %}active{% endif %}">📋 Songs</a></li>
+                <li><a href="{{ url_for('artists.index') }}"
+                        class="{% if request.endpoint and request.endpoint.startswith('artists.') %}active{% endif %}">👨‍🎤
+                        Artists</a></li>
                 <li><a href="{{ url_for('lookups.index') }}"
                         class="{% if request.endpoint and request.endpoint.startswith('lookups.') %}active{% endif %}">📖
                         Dictionaries</a></li>
