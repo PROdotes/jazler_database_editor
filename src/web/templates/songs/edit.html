@@ -33,121 +33,84 @@
 </div>
 
 <form action="{{ url_for('songs.save', song_id=song.primary_key) }}" method="post" class="edit-form">
-    <div class="edit-layout">
-        <!-- Left Column: Database Values -->
-        <div class="edit-column">
-            <div class="column-header">
-                <h2>📁 Database</h2>
+    <div class="compare-container">
+        <div class="compare-grid">
+            <!-- Headers -->
+            <div class="compare-header">
+                <div class="header-item"></div>
+                <div class="header-item">📁 Database</div>
+                <div class="header-item"></div>
+                <div class="header-item id3">🏷️ ID3 Tags</div>
             </div>
 
-            <div class="field-group">
-                <div class="form-field">
+            <!-- Artist -->
+            {% set artist_match = (id3_data and id3_data.artist == song.artist) %}
+            <div class="compare-row {{ 'match' if artist_match else 'mismatch' }}">
+                <div class="field-label">Artist</div>
+                <div class="field-db">
                     {% from "macros/entity_picker.html" import entity_picker %}
                     {{ entity_picker(
                     'fldArtistCode',
                     {'id': song.fldArtistCode, 'name': song.artist},
-                    'Artist',
+                    '',
                     '/artists/search'
                     ) }}
-                    {# Hidden input for Artist Name (will be updated by JS validation if really needed, but mostly we
-                    rely on code) #}
                     <input type="hidden" name="fldArtistName" value="{{ song.artist }}">
                 </div>
-
-                <div class="field-row">
-                    <div class="form-field checkbox-field" style="flex: 1;">
-                        <label class="toggle-switch">
-                            <input type="checkbox" name="enabled" id="enabled" {{ 'checked' if song.enabled else '' }}>
-                            <span class="slider round"></span>
-                        </label>
-                        <label for="enabled" class="checkbox-label">Enabled</label>
-                    </div>
-
-                    <div class="form-field checkbox-field" style="flex: 1;">
-                        <label class="toggle-switch">
-                            <input type="checkbox" name="enabled_auto" id="enabled_auto" {{ 'checked' if
-                                song['fldEnabledAuto'] else '' }}>
-                            <span class="slider round"></span>
-                        </label>
-                        <label for="enabled_auto" class="checkbox-label">Auto-DJ</label>
+                <div class="diff-bridge">
+                    <div class="bridge-icon" title="{{ 'Matches' if artist_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if artist_match else 'fa-sync-alt' }}"></i>
                     </div>
                 </div>
+                <div class="field-id3">
+                    <div class="readonly-value" id="id3-artist">{{ id3_data.artist if id3_data else '—' }}</div>
+                </div>
+            </div>
 
-                <div class="form-field">
-                    <label for="title">Title</label>
+            <!-- Title -->
+            {% set title_match = (id3_data and id3_data.title == song.title) %}
+            <div class="compare-row {{ 'match' if title_match else 'mismatch' }}">
+                <div class="field-label">Title</div>
+                <div class="field-db">
                     <input type="text" id="title" name="title" value="{{ song.title or '' }}" class="form-control">
                 </div>
+                <div class="diff-bridge">
+                    <div class="bridge-icon" title="{{ 'Matches' if title_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if title_match else 'fa-sync-alt' }}"></i>
+                    </div>
+                </div>
+                <div class="field-id3">
+                    <div class="readonly-value" id="id3-title">{{ id3_data.title if id3_data else '—' }}</div>
+                </div>
+            </div>
 
-                <div class="form-field">
-                    <label for="album">Album</label>
+            <!-- Album -->
+            {% set album_match = (id3_data and id3_data.album == song.album) %}
+            <div class="compare-row {{ 'match' if album_match else 'mismatch' }}">
+                <div class="field-label">Album</div>
+                <div class="field-db">
                     <input type="text" id="album" name="album" value="{{ song.album or '' }}" class="form-control">
                 </div>
-
-                <div class="form-field">
-                    <label for="year">Year</label>
-                    <input type="number" id="year" name="year" value="{{ song.year or '' }}" class="form-control"
-                        min="1900" max="2099">
-                </div>
-
-                <div class="form-field">
-                    <label for="composer">Composer</label>
-                    <input type="text" id="composer" name="composer" value="{{ song.composer or '' }}"
-                        class="form-control">
-                </div>
-
-                <div class="form-field">
-                    <label for="publisher">Publisher / Label</label>
-                    <input type="text" id="publisher" name="publisher" value="{{ song.publisher or '' }}"
-                        class="form-control">
-                </div>
-
-
-
-                <div class="field-row">
-                    <div class="form-field" style="flex: 1;">
-                        <label for="genre">Genre (Cat1a)</label>
-                        <select id="genre" name="genre" class="form-control">
-                            <option value="">(None)</option>
-                            {% for id, name in genre_map.items() %}
-                            {% if id != 0 %}
-                            <option value="{{ id }}" {% if song.genre==id %}selected{% endif %}>{{ name }}</option>
-                            {% endif %}
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-field" style="flex: 1;">
-                        <label for="subcat1">Subcat 1 (Cat1b)</label>
-                        <select id="subcat1" name="subcat1" class="form-control">
-                            <option value="">(None)</option>
-                            {% for id, name in genre_map.items() %}
-                            {% if id != 0 %}
-                            <option value="{{ id }}" {% if song['fldCat1b']==id %}selected{% endif %}>{{ name }}
-                            </option>
-                            {% endif %}
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="form-field" style="flex: 1;">
-                        <label for="subcat2">Subcat 2 (Cat1c)</label>
-                        <select id="subcat2" name="subcat2" class="form-control">
-                            <option value="">(None)</option>
-                            {% for id, name in genre_map.items() %}
-                            {% if id != 0 %}
-                            <option value="{{ id }}" {% if song['fldCat1c']==id %}selected{% endif %}>{{ name }}
-                            </option>
-                            {% endif %}
-                            {% endfor %}
-                        </select>
+                <div class="diff-bridge">
+                    <div class="bridge-icon" title="{{ 'Matches' if album_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if album_match else 'fa-sync-alt' }}"></i>
                     </div>
                 </div>
+                <div class="field-id3">
+                    <div class="readonly-value" id="id3-album">{{ id3_data.album if id3_data else '—' }}</div>
+                </div>
+            </div>
 
-                <div class="field-row">
-                    <div class="form-field" style="flex: 1;">
-                        <label for="decade">Decade</label>
-                        <select id="decade" name="decade" class="form-control">
-                            <option value="">(None)</option>
+            <!-- Year / Decade -->
+            {% set year_match = (id3_data and id3_data.year|string == song.year|string) %}
+            <div class="compare-row {{ 'match' if year_match else 'mismatch' }}">
+                <div class="field-label">Year / Decade</div>
+                <div class="field-db" title="Year and Decade are linked">
+                    <div class="field-row">
+                        <input type="number" id="year" name="year" value="{{ song.year or '' }}" class="form-control"
+                            min="1900" max="2099" style="flex: 1;">
+                        <select id="decade" name="decade" class="form-control" style="flex: 1.5;">
+                            <option value="">(Decade)</option>
                             {% for id, name in decade_map.items() %}
                             {% if id != 0 %}
                             <option value="{{ id }}" {% if song.decade==id %}selected{% endif %}>{{ name }}</option>
@@ -155,76 +118,102 @@
                             {% endfor %}
                         </select>
                     </div>
+                </div>
+                <div class="diff-bridge">
+                    <div class="bridge-icon" title="{{ 'Matches' if year_match else 'Mismatched' }}">
+                        <i class="fas {{ 'fa-check' if year_match else 'fa-sync-alt' }}"></i>
+                    </div>
+                </div>
+                <div class="field-id3">
+                    <div class="readonly-value" id="id3-year">{{ id3_data.year if id3_data else '—' }}</div>
+                </div>
+            </div>
 
-                    <div class="form-field" style="flex: 1;">
-                        <label for="tempo">Tempo</label>
-                        <select id="tempo" name="tempo" class="form-control">
+            <!-- Composer (Only DB for now, but aligned) -->
+            <div class="compare-row only-db">
+                <div class="field-label">Composer</div>
+                <div class="field-db">
+                    <input type="text" id="composer" name="composer" value="{{ song.composer or '' }}"
+                        class="form-control">
+                </div>
+                <div class="diff-bridge">
+                    <div class="bridge-icon"></div>
+                </div>
+                <div class="field-id3"></div>
+            </div>
+
+            <!-- Publisher -->
+            <div class="compare-row only-db">
+                <div class="field-label">Publisher</div>
+                <div class="field-db">
+                    <input type="text" id="publisher" name="publisher" value="{{ song.publisher or '' }}"
+                        class="form-control">
+                </div>
+                <div class="diff-bridge">
+                    <div class="bridge-icon"></div>
+                </div>
+                <div class="field-id3"></div>
+            </div>
+
+            <!-- Genres -->
+            <div class="compare-row only-db">
+                <div class="field-label">Genres</div>
+                <div class="field-db">
+                    <div class="field-row">
+                        <select name="genre" class="form-control" title="Primary Genre (Cat1a)">
+                            {% for id, name in genre_map.items() %}<option value="{{ id }}" {% if song.genre==id
+                                %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                        </select>
+                        <select name="subcat1" class="form-control" title="Secondary Genre (Cat1b)">
                             <option value="">(None)</option>
-                            {% for id, name in tempo_map.items() %}
-                            {% if id != 0 %}
-                            <option value="{{ id }}" {% if song.tempo==id %}selected{% endif %}>{{ name }}</option>
-                            {% endif %}
-                            {% endfor %}
+                            {% for id, name in genre_map.items() %}<option value="{{ id }}" {% if song['fldCat1b']==id
+                                %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                        </select>
+                        <select name="subcat2" class="form-control" title="Tertiary Genre (Cat1c)">
+                            <option value="">(None)</option>
+                            {% for id, name in genre_map.items() %}<option value="{{ id }}" {% if song['fldCat1c']==id
+                                %}selected{% endif %}>{{ name }}</option>{% endfor %}
                         </select>
                     </div>
-
-                    <div class="form-field" style="flex: 1;">
-                        <label for="isrc">ISRC</label>
-                        <input type="text" id="isrc" name="isrc" value="{{ song.isrc or '' }}" class="form-control mono"
-                            placeholder="CC-XXX-YY-NNNNN">
-                    </div>
                 </div>
-
-                <div class="form-field readonly mt-2">
-                    <label>Entry Date</label>
-                    <div class="readonly-value small text-muted">{{ song['fldEntryDate'] or '—' }}</div>
+                <div class="diff-bridge">
+                    <div class="bridge-icon"></div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Right Column: ID3 Tags (read-only for now) -->
-        <div class="edit-column id3-column">
-            <div class="column-header">
-                <h2>🏷️ ID3 Tags</h2>
-                <span class="badge">Read Only</span>
+                <div class="field-id3"></div>
             </div>
 
-            <div class="field-group">
-                {% if id3_data %}
-                <div class="form-field readonly">
-                    <label>Artist</label>
-                    <div class="readonly-value {{ 'match' if id3_data.artist == song.artist else 'mismatch' }}">
-                        {{ id3_data.artist or '—' }}
-                    </div>
-                </div>
+            <!-- Tempo & Status -->
+            <div class="compare-row only-db">
+                <div class="field-label">Tempo & Status</div>
+                <div class="field-db" style="display: flex; align-items: center; gap: 20px;">
+                    <select name="tempo" class="form-control" style="width: 140px;">
+                        <option value="">(Tempo)</option>
+                        {% for id, name in tempo_map.items() %}<option value="{{ id }}" {% if song.tempo==id
+                            %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                    </select>
 
-                <div class="form-field readonly">
-                    <label>Title</label>
-                    <div class="readonly-value {{ 'match' if id3_data.title == song.title else 'mismatch' }}">
-                        {{ id3_data.title or '—' }}
+                    <div class="checkbox-field" style="border: none; padding: 0; margin: 0; display: flex; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="enabled" {{ 'checked' if song.enabled else '' }}>
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="checkbox-label">Enabled</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" name="enabled_auto" {{ 'checked' if song['fldEnabledAuto']
+                                    else '' }}>
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="checkbox-label">Auto</span>
+                        </div>
                     </div>
                 </div>
-
-                <div class="form-field readonly">
-                    <label>Album</label>
-                    <div class="readonly-value {{ 'match' if id3_data.album == song.album else 'mismatch' }}">
-                        {{ id3_data.album or '—' }}
-                    </div>
+                <div class="diff-bridge">
+                    <div class="bridge-icon"></div>
                 </div>
-
-                <div class="form-field readonly">
-                    <label>Year</label>
-                    <div
-                        class="readonly-value {{ 'match' if id3_data.year|string == song.year|string else 'mismatch' }}">
-                        {{ id3_data.year or '—' }}
-                    </div>
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <p>⚠️ File not accessible</p>
-                    <p class="text-muted">{{ song.filename }}</p>
-                </div>
-                {% endif %}
+                <div class="field-id3"></div>
             </div>
         </div>
     </div>

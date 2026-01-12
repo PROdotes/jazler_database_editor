@@ -20,6 +20,79 @@ function highlightField(field, color = '#1a3a1a') {
     setTimeout(() => field.style.backgroundColor = '', 1500);
 }
 
+/**
+ * Update the comparison icon between DB and ID3
+ * @param {string} inputId - ID of the database input
+ * @param {string} id3Id - ID of the ID3 display element
+ */
+function updateSyncStatus(inputId, id3Id) {
+    const input = document.getElementById(inputId);
+    const id3 = document.getElementById(id3Id);
+    if (!input || !id3) return;
+
+    const row = input.closest('.compare-row');
+    if (!row) return;
+
+    const bridgeIcon = row.querySelector('.bridge-icon');
+    const icon = bridgeIcon ? bridgeIcon.querySelector('i') : null;
+
+    // Normalize values for comparison
+    const dbVal = input.value.trim().toLowerCase();
+    const id3Val = id3.textContent.trim().toLowerCase();
+
+    // ID3 values of '—' or empty should be treated as empty
+    const isEmptyId3 = id3Val === '—' || id3Val === '';
+    const isEmptyDb = dbVal === '';
+
+    let match = false;
+    if (isEmptyId3 && isEmptyDb) {
+        match = true;
+    } else if (!isEmptyId3) {
+        match = (dbVal === id3Val);
+    }
+
+    // Special logic for Year/Decade: Both must match ID3 AND be consistent with each other
+    if (inputId === 'year' && match) {
+        const decadeSelect = document.getElementById('decade');
+        if (decadeSelect && dbVal) {
+            const yearNum = parseInt(dbVal);
+            const decadeText = decadeSelect.options[decadeSelect.selectedIndex].text;
+            const expectedDecadeStart = Math.floor(yearNum / 10) * 10;
+
+            // Check if selected decade string contains the expected decade start year
+            if (!decadeText.includes(expectedDecadeStart.toString())) {
+                match = false; // Integrity fail: Year is 1993, but Decade is 2000's
+            }
+        }
+    }
+
+    if (match) {
+        row.classList.remove('mismatch');
+        row.classList.add('match');
+        if (icon) {
+            icon.className = 'fas fa-check';
+        }
+        if (bridgeIcon) bridgeIcon.title = 'Matches';
+    } else {
+        row.classList.remove('match');
+        row.classList.add('mismatch');
+        if (icon) {
+            icon.className = 'fas fa-sync-alt';
+        }
+        if (bridgeIcon) bridgeIcon.title = 'Mismatched';
+    }
+}
+
+/**
+ * Update all sync statuses on the page
+ */
+function updateAllSyncStatuses() {
+    updateSyncStatus('fldArtistCode_display', 'id3-artist');
+    updateSyncStatus('title', 'id3-title');
+    updateSyncStatus('album', 'id3-album');
+    updateSyncStatus('year', 'id3-year');
+}
+
 
 /**
  * Parse the Album field if it contains "Album; Publisher; Year" format
@@ -63,6 +136,7 @@ function parseAlbumField() {
             highlightField(yearField);
         }
 
+        updateAllSyncStatuses();
     } else if (parts.length === 2) {
         // Format: Album; Year or Album; Publisher
         const album = parts[0];
@@ -83,6 +157,7 @@ function parseAlbumField() {
                 highlightField(publisherField);
             }
         }
+        updateAllSyncStatuses();
     }
 }
 
@@ -109,6 +184,8 @@ function trimWhitespace() {
 
     if (trimmed === 0) {
         alert('No whitespace to trim.');
+    } else {
+        updateAllSyncStatuses();
     }
 }
 
@@ -140,6 +217,7 @@ function titleCaseTitle() {
     if (original !== newValue) {
         field.value = newValue;
         highlightField(field);
+        updateAllSyncStatuses();
     }
 }
 
@@ -176,6 +254,7 @@ function normalizeFeat() {
     if (original !== newValue) {
         field.value = newValue;
         highlightField(field);
+        updateAllSyncStatuses();
     } else {
         alert('No "feat" variations found to normalize.');
     }
@@ -227,6 +306,51 @@ function setupRenamePreview() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', setupRenamePreview);
+/**
+ * Setup input listeners for real-time comparison
+ */
+function setupSyncChecks() {
+    const fields = [
+        { input: 'fldArtistCode_display', id3: 'id3-artist' },
+        { input: 'title', id3: 'id3-title' },
+        { input: 'album', id3: 'id3-album' },
+        { input: 'year', id3: 'id3-year' }
+    ];
+
+    fields.forEach(pair => {
+        const input = document.getElementById(pair.input);
+        if (input) {
+            input.addEventListener('input', () => updateSyncStatus(pair.input, pair.id3));
+
+            // Also listen for decade change to update the year row status
+            if (pair.input === 'year') {
+                const decadeSelect = document.getElementById('decade');
+                if (decadeSelect) {
+                    decadeSelect.addEventListener('change', () => updateSyncStatus('year', 'id3-year'));
+                }
+            }
+
+            // Initial run
+            updateSyncStatus(pair.input, pair.id3);
+        }
+    });
+
+    // Handle entity picker selection (it might not fire 'input' if changed via JS)
+    // We can poll or just hook into the picker's onclick if we had a cleaner way,
+    // but the picker macro already updates the input.value.
+    // Let's add an observer for the hidden artist code field just in case.
+    const artistHidden = document.getElementById('fldArtistCode');
+    if (artistHidden) {
+        // Since input values changed via JS don't fire events, we can poll briefly
+        // or just wait for the display input to change which usually happens.
+        // The entity_picker macro sets input.value directly. 
+        // We'll rely on the display input being updated.
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setupRenamePreview();
+    setupSyncChecks();
+});
 
 console.log('🔧 Edit tools loaded');

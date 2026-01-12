@@ -102,6 +102,8 @@
                                 input.value = item.text;
                                 hidden.value = item.id;
                                 dropdown.classList.add('hidden');
+                                // Dispatch event so other tools know it changed
+                                input.dispatchEvent(new Event('input'));
                             };
                             dropdown.appendChild(div);
                         });
@@ -138,9 +140,11 @@
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById('{{ name }}_display').value = data.text;
+                    const inp = document.getElementById('{{ name }}_display');
+                    inp.value = data.text;
                     document.getElementById('{{ name }}').value = data.id;
                     document.getElementById('{{ name }}_dropdown').classList.add('hidden');
+                    inp.dispatchEvent(new Event('input'));
                 } else {
                     alert('Error: ' + data.error);
                 }
