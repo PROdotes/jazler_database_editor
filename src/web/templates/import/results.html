@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Import Results{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .summary-card {
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    .summary-card.total { background: #e2e3e5; }
+    .summary-card.success { background: #d4edda; }
+    .summary-card.skipped { background: #fff3cd; }
+    .summary-card.errors { background: #f8d7da; }
+
+    .summary-card .number {
+        font-size: 2em;
+        font-weight: bold;
+    }
+    .summary-card .label {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .result-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .result-row:last-child { border-bottom: none; }
+
+    .result-action {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+    .result-action.created { background: #d4edda; color: #155724; }
+    .result-action.merged { background: #cce5ff; color: #004085; }
+    .result-action.skipped { background: #fff3cd; color: #856404; }
+    .result-action.error { background: #f8d7da; color: #721c24; }
+
+    .result-path {
+        font-family: monospace;
+        font-size: 0.85em;
+        color: #666;
+    }
+    .result-error {
+        font-size: 0.85em;
+        color: #721c24;
+        margin-top: 5px;
+    }
+    .result-ids {
+        font-size: 0.85em;
+        color: #28a745;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Import Complete</h2>
+    <p class="subtitle">Results of the import operation</p>
+</div>
+
+<div class="results-summary">
+    <div class="summary-card total">
+        <div class="number">{{ summary.total_files }}</div>
+        <div class="label">Total Files</div>
+    </div>
+    <div class="summary-card success">
+        <div class="number">{{ summary.successful }}</div>
+        <div class="label">Successful</div>
+    </div>
+    <div class="summary-card skipped">
+        <div class="number">{{ summary.skipped }}</div>
+        <div class="label">Skipped</div>
+    </div>
+    <div class="summary-card errors">
+        <div class="number">{{ summary.errors }}</div>
+        <div class="label">Errors</div>
+    </div>
+</div>
+
+{% if summary.new_artists_created > 0 %}
+<div class="alert alert-info">
+    <i class="fas fa-user-plus"></i> {{ summary.new_artists_created }} new artist(s) created
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h3>Detailed Results</h3>
+    </div>
+    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+        {% for result in summary.results %}
+        <div class="result-row">
+            <div style="flex: 1;">
+                <span class="result-action {{ result.action }}">{{ result.action }}</span>
+                <div class="result-path">{{ result.file_path }}</div>
+                {% if result.error %}
+                <div class="result-error"><i class="fas fa-exclamation-circle"></i> {{ result.error }}</div>
+                {% endif %}
+                {% if result.song_id %}
+                <div class="result-ids">
+                    Song ID: #{{ result.song_id }}
+                    {% if result.artist_id %} | Artist ID: #{{ result.artist_id }}{% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% if result.success %}
+            <i class="fas fa-check-circle" style="color: #28a745; font-size: 1.2em;"></i>
+            {% else %}
+            <i class="fas fa-times-circle" style="color: #dc3545; font-size: 1.2em;"></i>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="card-footer" style="padding: 15px;">
+        <a href="{{ url_for('import.index') }}" class="btn btn-primary">
+            <i class="fas fa-redo"></i> Import More Files
+        </a>
+        <a href="{{ url_for('songs.search') }}" class="btn btn-secondary">
+            <i class="fas fa-music"></i> Go to Songs
+        </a>
+    </div>
+</div>
+{% endblock %}

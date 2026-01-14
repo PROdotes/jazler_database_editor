@@ -42,6 +42,8 @@
                         class="{% if request.endpoint == 'schema.index' %}active{% endif %}">📊 Schema</a></li>
                 <li><a href="{{ url_for('audit.index') }}"
                         class="{% if request.endpoint == 'audit.index' %}active{% endif %}">🔍 Audit</a></li>
+                <li><a href="{{ url_for('import.index') }}"
+                        class="{% if request.endpoint and request.endpoint.startswith('import.') %}active{% endif %}">📥 Import</a></li>
                 <li><a href="{{ url_for('export.index') }}"
                         class="{% if request.endpoint == 'export.index' %}active{% endif %}">📦 Export</a></li>
             </ul>

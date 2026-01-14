@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Select Files to Import{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Select Files to Import</h2>
+    <p class="subtitle">Found {{ files|length }} untracked files</p>
+</div>
+
+<form action="{{ url_for('import.preview') }}" method="POST" id="select-form">
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Untracked Files</h3>
+            <div class="selection-controls">
+                <button type="button" class="btn btn-sm" onclick="selectAll()">Select All</button>
+                <button type="button" class="btn btn-sm" onclick="selectNone()">Select None</button>
+                <span class="selection-count">0 selected</span>
+            </div>
+        </div>
+        <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="select-all-checkbox" onchange="toggleAll(this)">
+                        </th>
+                        <th>#</th>
+                        <th>File Path</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in files %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="files" value="{{ file }}" class="file-checkbox" onchange="updateCount()">
+                        </td>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-family: monospace; font-size: 0.85em;">{{ file }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer" style="display: flex; justify-content: space-between; padding: 15px;">
+            <a href="{{ url_for('import.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-eye"></i> Preview Import
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+function selectAll() {
+    document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = true);
+    document.getElementById('select-all-checkbox').checked = true;
+    updateCount();
+}
+
+function selectNone() {
+    document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = false);
+    document.getElementById('select-all-checkbox').checked = false;
+    updateCount();
+}
+
+function toggleAll(checkbox) {
+    document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = checkbox.checked);
+    updateCount();
+}
+
+function updateCount() {
+    const count = document.querySelectorAll('.file-checkbox:checked').length;
+    document.querySelector('.selection-count').textContent = count + ' selected';
+}
+
+// Initial count
+updateCount();
+</script>
+{% endblock %}

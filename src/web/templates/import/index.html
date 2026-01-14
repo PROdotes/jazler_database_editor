@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Import Orphans{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Import Orphan Files</h2>
+    <p class="subtitle">Import MP3 files that exist on disk but are not in the database</p>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Step 1: Scan for Orphan Files</h3>
+    </div>
+    <div class="card-body">
+        <p>Click the button below to scan the music folder for files that are not tracked in the database.</p>
+        <form action="{{ url_for('import.scan') }}" method="POST">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Scan for Orphans
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <h3>Manual File Check (Test)</h3>
+    </div>
+    <div class="card-body">
+        <p>Select files manually to test import resolution logic.</p>
+        <form action="{{ url_for('import.manual_upload') }}" method="POST" enctype="multipart/form-data">
+            <div class="form-group" style="margin-bottom: 15px;">
+                <input type="file" name="files" multiple accept=".mp3" class="form-control-file">
+            </div>
+            <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-upload"></i> Check Files
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 20px;">
+    <div class="card-header">
+        <h3>Import Process Overview</h3>
+    </div>
+    <div class="card-body">
+        <ol style="margin-left: 20px; line-height: 2;">
+            <li><strong>Scan</strong> - Find files on disk not in the database</li>
+            <li><strong>Select</strong> - Choose which files to import</li>
+            <li><strong>Preview</strong> - Review how files will be parsed and check for duplicates</li>
+            <li><strong>Execute</strong> - Import the files with your chosen conflict resolutions</li>
+        </ol>
+
+        <div class="info-box" style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 4px;">
+            <h4 style="margin-bottom: 10px;"><i class="fas fa-info-circle"></i> What gets imported:</h4>
+            <ul style="margin-left: 20px;">
+                <li><strong>Artist & Title</strong> - From ID3 tags (preferred) or filename parsing</li>
+                <li><strong>Genre</strong> - Matched to existing categories, or "za obradu" if unknown</li>
+                <li><strong>Decade</strong> - Calculated from year (e.g., 1985 -> 1980's)</li>
+                <li><strong>Duration, Album, Year</strong> - From ID3 tags</li>
+                <li><strong>Default settings</strong> - Enabled, Auto-DJ, Priority=5, etc.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

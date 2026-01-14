@@ -1,0 +1,605 @@
+{% extends "base.html" %}
+{% block title %}Import Preview{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.75em;
+        font-weight: bold;
+        text-transform: uppercase;
+    }
+
+    .status-new {
+        background: rgba(34, 197, 94, 0.2);
+        color: #4ade80;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    .status-duplicate {
+        background: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .status-conflict {
+        background: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .conflict-options {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .conflict-options label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+        font-size: 0.85em;
+        transition: all 0.2s;
+    }
+
+    .conflict-options label:hover {
+        border-color: var(--accent-primary);
+        background: var(--bg-secondary);
+    }
+
+    .conflict-options input[type="radio"]:checked+span {
+        font-weight: bold;
+        color: var(--accent-primary);
+    }
+
+    .existing-info {
+        font-size: 0.85em;
+        color: var(--text-secondary);
+        margin-top: 5px;
+        padding: 8px;
+        background: var(--bg-tertiary);
+        border-radius: 4px;
+        border-left: 3px solid var(--warning);
+    }
+
+    .summary-box {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .summary-item {
+        padding: 15px 25px;
+        border-radius: 8px;
+        text-align: center;
+        flex: 1;
+        border: 1px solid transparent;
+    }
+
+    .summary-item.new {
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.2);
+        color: #4ade80;
+    }
+
+    .summary-item.duplicate {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+    }
+
+    .summary-item.conflict {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+    }
+
+    .summary-item .count {
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+
+    .summary-item .label {
+        font-size: 0.85em;
+    }
+
+    .candidate-row {
+        border-bottom: 1px solid #eee;
+        padding: 15px 0;
+    }
+
+    .candidate-row:last-child {
+        border-bottom: none;
+    }
+
+    .candidate-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        margin-top: 5px;
+        font-size: 0.85em;
+        color: #666;
+    }
+
+    .confidence-bar {
+        display: inline-block;
+        width: 50px;
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+        vertical-align: middle;
+    }
+
+    .confidence-bar-fill {
+        height: 100%;
+        background: #28a745;
+    }
+
+    /* Side-by-side comparison table */
+    .comparison-table {
+        width: 100%;
+        margin-top: 15px;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.9em;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+        padding: 10px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+
+    .comparison-table th {
+        background: var(--bg-tertiary);
+        font-weight: 600;
+        width: 15%;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-size: 0.75em;
+        letter-spacing: 0.5px;
+    }
+
+    .comparison-table td.importing {
+        background: rgba(34, 197, 94, 0.05);
+        /* Very subtle green */
+        width: 42.5%;
+        border-right: 1px solid var(--border-color);
+    }
+
+    .comparison-table td.existing {
+        background: rgba(245, 158, 11, 0.05);
+        /* Very subtle orange */
+        width: 42.5%;
+    }
+
+    .comparison-table thead th {
+        text-align: center;
+        background: var(--bg-secondary);
+        border-bottom: 2px solid var(--border-color);
+        font-size: 0.85em;
+        padding: 12px;
+    }
+
+    .comparison-table thead th.importing {
+        color: var(--success);
+        background: rgba(34, 197, 94, 0.1);
+        border-right: 1px solid var(--border-color);
+    }
+
+    .comparison-table thead th.existing {
+        color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+    .comparison-table tr.different td {
+        position: relative;
+    }
+
+    .comparison-table tr.different td.importing {
+        background: rgba(34, 197, 94, 0.15);
+        font-weight: 500;
+    }
+
+    .comparison-table tr.different td.existing {
+        background: rgba(245, 158, 11, 0.15);
+        opacity: 0.8;
+    }
+
+    .comparison-table .empty-value {
+        color: var(--text-muted);
+        font-style: italic;
+        font-size: 0.9em;
+    }
+
+    .comparison-table .field-name {
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-color);
+    }
+
+    /* Collapsible comparison */
+    .comparison-toggle {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        margin-top: 10px;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .comparison-toggle:hover {
+        background: var(--bg-secondary);
+        border-color: var(--accent-primary);
+        color: var(--text-primary);
+    }
+
+    .comparison-details {
+        margin-top: 15px;
+        display: none;
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .comparison-details.show {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Import Preview</h2>
+    <p class="subtitle">Review the parsed metadata before importing</p>
+</div>
+
+<div class="summary-box">
+    <div class="summary-item new">
+        <div class="count">{{ status_counts.new }}</div>
+        <div class="label">New (Ready)</div>
+    </div>
+    <div class="summary-item duplicate">
+        <div class="count">{{ status_counts.duplicate }}</div>
+        <div class="label">Duplicates (Skip)</div>
+    </div>
+    <div class="summary-item conflict">
+        <div class="count">{{ status_counts.conflict }}</div>
+        <div class="label">Conflicts (Decide)</div>
+    </div>
+</div>
+
+<form action="{{ url_for('import.execute') }}" method="POST">
+    <div class="card">
+        <div class="card-header">
+            <h3>Files to Import</h3>
+        </div>
+        <div class="card-body" style="max-height: 800px; overflow-y: auto;">
+            {% for c in candidates %}
+            {% set file_key = c.file_path|replace('\\', '_')|replace('/', '_')|replace(':', '_') %}
+            <div class="candidate-row">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <strong>{{ c.artist }}</strong> - {{ c.title }}
+                        <span class="status-badge status-{{ c.status }}">{{ c.status }}</span>
+                        {% if c.artist_is_new %}
+                        <span class="status-badge" style="background: #e2e3e5; color: #383d41;">New Artist</span>
+                        {% endif %}
+                    </div>
+                    <div class="confidence-bar" title="Confidence: {{ (c.confidence * 100)|int }}%">
+                        <div class="confidence-bar-fill" style="width: {{ (c.confidence * 100)|int }}%"></div>
+                    </div>
+                </div>
+
+                <div class="candidate-meta">
+                    <div><strong>Album:</strong> {{ c.album or '(none)' }}</div>
+                    <div><strong>Year:</strong> {{ c.year or '(none)' }}</div>
+                    <div><strong>Genre:</strong> {{ c.genre or '(none)' }}</div>
+                    <div><strong>Duration:</strong> {{ "%.1f"|format(c.duration) }}s</div>
+                    <div><strong>Source:</strong> {{ c.source }}</div>
+                    <div><strong>Genre IDs:</strong> {{ c.genre_ids }}</div>
+                </div>
+
+                <div style="font-family: monospace; font-size: 0.8em; color: #888; margin-top: 5px;">
+                    {{ c.file_path }}
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <button type="button" class="comparison-toggle" onclick="toggleRawData(this)"
+                        style="font-size: 0.75em; padding: 4px 10px;">
+                        🔍 Debug: View Raw Data
+                    </button>
+                    <div class="raw-data-details" style="display: none; margin-top: 10px;">
+                        <div
+                            style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border-color);">
+                            <h4
+                                style="margin-bottom: 10px; color: var(--text-secondary); font-size: 0.85em; text-transform: uppercase;">
+                                Database Insertion Payload
+                            </h4>
+                            {% if c.insertion_diff %}
+                            <div
+                                style="margin-bottom: 15px; padding: 10px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 4px;">
+                                <strong
+                                    style="color: #fbbf24; text-transform: uppercase; font-size: 0.8em; display: block; margin-bottom: 5px;">
+                                    ⚠️ Database Differences (If Merged/Overwritten)
+                                </strong>
+                                <pre
+                                    style="background: rgba(0,0,0,0.3); color: #fbbf24; margin: 0; padding: 10px; font-size: 0.8em;">{{ c.insertion_diff | tojson(indent=2) }}</pre>
+                            </div>
+                            {% endif %}
+                            <pre
+                                style="background: #000; color: #4ade80; padding: 15px; border-radius: 4px; font-family: monospace; font-size: 0.8em; overflow-x: auto;">{{ c.insertion_data | tojson(indent=2) }}</pre>
+                            <p style="margin-top: 10px; font-size: 0.8em; color: var(--text-muted);">
+                                <i class="fas fa-info-circle"></i> This is the exact data structure that will be sent to
+                                the database.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if c.status == 'conflict' and c.existing_data %}
+                <!-- Side-by-side comparison for conflicts -->
+                <div class="existing-info">
+                    <strong>⚠️ Conflict:</strong> Record #{{ c.existing_song_id }} exists with same artist+title
+                </div>
+
+                <button type="button" class="comparison-toggle" onclick="toggleComparison(this)">
+                    📊 Show Comparison
+                </button>
+
+
+                <div class="comparison-details">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Field</th>
+                                <th class="importing">Would Import (New File)</th>
+                                <th class="existing">Currently in Database</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set ex = c.existing_data %}
+
+                            <!-- Artist -->
+                            <tr {% if c.artist !=ex.artist %}class="different" {% endif %}>
+                                <th class="field-name">Artist</th>
+                                <td class="importing">{{ c.artist or '<span class="empty-value">(empty)</span>'|safe }}
+                                </td>
+                                <td class="existing">{{ ex.artist or '<span class="empty-value">(empty)</span>'|safe }}
+                                </td>
+                            </tr>
+
+                            <!-- Title -->
+                            <tr {% if c.title !=ex.title %}class="different" {% endif %}>
+                                <th class="field-name">Title</th>
+                                <td class="importing">{{ c.title or '<span class="empty-value">(empty)</span>'|safe }}
+                                </td>
+                                <td class="existing">{{ ex.title or '<span class="empty-value">(empty)</span>'|safe }}
+                                </td>
+                            </tr>
+
+                            <!-- Album -->
+                            <tr {% if c.album !=ex.album %}class="different" {% endif %}>
+                                <th class="field-name">Album</th>
+                                <td class="importing">{{ c.album or '<span class="empty-value">(none)</span>'|safe }}
+                                </td>
+                                <td class="existing">{{ ex.album or '<span class="empty-value">(none)</span>'|safe }}
+                                </td>
+                            </tr>
+
+                            <!-- Year -->
+                            <tr {% if c.year !=ex.year %}class="different" {% endif %}>
+                                <th class="field-name">Year</th>
+                                <td class="importing">{{ c.year or '<span class="empty-value">(none)</span>'|safe }}
+                                </td>
+                                <td class="existing">{{ ex.year or '<span class="empty-value">(none)</span>'|safe }}
+                                </td>
+                            </tr>
+
+                            <!-- Duration -->
+                            {% set dur_diff = (c.duration - ex.duration)|abs > 0.5 %}
+                            <tr {% if dur_diff %}class="different" {% endif %}>
+                                <th class="field-name">Duration</th>
+                                <td class="importing">{{ "%.2f"|format(c.duration) }}s</td>
+                                <td class="existing">{{ "%.2f"|format(ex.duration) }}s</td>
+                            </tr>
+
+                            <!-- Genres -->
+                            {% set new_genres = [] %}
+                            {% for gid in c.genre_ids %}
+                            {% if gid and gid > 0 %}
+                            {% set _ = new_genres.append(genre_map.get(gid, 'ID:' ~ gid)) %}
+                            {% endif %}
+                            {% endfor %}
+                            {% set ex_genres = [] %}
+                            {% for gid in ex.genre_ids %}
+                            {% if gid and gid > 0 %}
+                            {% set _ = ex_genres.append(genre_map.get(gid, 'ID:' ~ gid)) %}
+                            {% endif %}
+                            {% endfor %}
+                            <tr {% if c.genre_ids !=ex.genre_ids %}class="different" {% endif %}>
+                                <th class="field-name">Genres</th>
+                                <td class="importing">
+                                    {% if new_genres %}
+                                    {{ new_genres | join(', ') }}
+                                    <span style="color: #888; font-size: 0.85em;">({{ c.genre_ids }})</span>
+                                    {% else %}
+                                    <span class="empty-value">(none)</span>
+                                    {% endif %}
+                                </td>
+                                <td class="existing">
+                                    {% if ex_genres %}
+                                    {{ ex_genres | join(', ') }}
+                                    <span style="color: #888; font-size: 0.85em;">({{ ex.genre_ids }})</span>
+                                    {% else %}
+                                    <span class="empty-value">(none)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                            <!-- Decade -->
+                            {% set new_decade = decade_map.get(c.decade_id, '') if c.decade_id else '' %}
+                            {% set ex_decade = decade_map.get(ex.decade_id, '') if ex.decade_id else '' %}
+                            <tr {% if c.decade_id !=ex.decade_id %}class="different" {% endif %}>
+                                <th class="field-name">Decade</th>
+                                <td class="importing">
+                                    {% if new_decade %}
+                                    {{ new_decade }}
+                                    <span style="color: #888; font-size: 0.85em;">(ID {{ c.decade_id }})</span>
+                                    {% elif c.decade_id %}
+                                    ID: {{ c.decade_id }}
+                                    {% else %}
+                                    <span class="empty-value">(none)</span>
+                                    {% endif %}
+                                </td>
+                                <td class="existing">
+                                    {% if ex_decade %}
+                                    {{ ex_decade }}
+                                    <span style="color: #888; font-size: 0.85em;">(ID {{ ex.decade_id }})</span>
+                                    {% elif ex.decade_id %}
+                                    ID: {{ ex.decade_id }}
+                                    {% else %}
+                                    <span class="empty-value">(none)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+
+                            <!-- Path (always different for conflicts) -->
+                            <tr class="different">
+                                <th class="field-name">File Path</th>
+                                <td class="importing"
+                                    style="word-break: break-all; font-family: monospace; font-size: 0.8em;">{{
+                                    c.file_path }}</td>
+                                <td class="existing"
+                                    style="word-break: break-all; font-family: monospace; font-size: 0.8em;">{{ ex.path
+                                    }}</td>
+                            </tr>
+
+                            <!-- ISRC -->
+                            <tr {% if (c.get('isrc', '' ) or '' ) !=(ex.isrc or '' ) %}class="different" {% endif %}>
+                                <th class="field-name">ISRC</th>
+                                <td class="importing">{{ c.get('isrc', '') or '<span
+                                        class="empty-value">(none)</span>'|safe }}</td>
+                                <td class="existing">{{ ex.isrc or '<span class="empty-value">(none)</span>'|safe }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="conflict-options">
+                    <label>
+                        <input type="radio" name="decision_{{ file_key }}" value="skip" checked>
+                        <span>🚫 Skip</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="decision_{{ file_key }}" value="merge">
+                        <span>🔄 Merge (update path to new file)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="decision_{{ file_key }}" value="import">
+                        <span>➕ Import as new record</span>
+                    </label>
+                </div>
+
+                {% elif c.status == 'conflict' %}
+                <!-- Conflict without comparison data (fallback) -->
+                <div class="existing-info">
+                    <strong>Existing record:</strong> ID #{{ c.existing_song_id }} at {{ c.existing_path }}
+                </div>
+                <div class="conflict-options">
+                    <label>
+                        <input type="radio" name="decision_{{ file_key }}" value="skip" checked>
+                        <span>Skip</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="decision_{{ file_key }}" value="merge">
+                        <span>Merge (update path)</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="decision_{{ file_key }}" value="import">
+                        <span>Import as new</span>
+                    </label>
+                </div>
+
+                {% elif c.status == 'duplicate' %}
+                <input type="hidden" name="decision_{{ file_key }}" value="skip">
+                <div class="existing-info" style="color: #dc3545;">
+                    <strong>⛔ Duplicate path:</strong> This exact file path is already in the database
+                </div>
+
+                {% else %}
+                <input type="hidden" name="decision_{{ file_key }}" value="import">
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="card-footer" style="display: flex; justify-content: space-between; padding: 15px;">
+            <a href="{{ url_for('import.select') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Selection
+            </a>
+            <button type="submit" class="btn btn-primary"
+                onclick="return confirm('Are you sure you want to import these files?')">
+                <i class="fas fa-download"></i> Execute Import
+            </button>
+        </div>
+    </div>
+</form>
+
+<script>
+    function toggleComparison(btn) {
+        const details = btn.nextElementSibling;
+        details.classList.toggle('show');
+        btn.textContent = details.classList.contains('show') ? '📊 Hide Comparison' : '📊 Show Comparison';
+    }
+
+    function toggleRawData(btn) {
+        // Find the raw data container relative to the button
+        // It might be the next element, or we might need to search by class
+        // Since we moved it, let's assume it's the next sibling strictly for now, 
+        // OR we can search for the next element with class 'raw-data-details'
+        let details = btn.nextElementSibling;
+        while (details && !details.classList.contains('raw-data-details')) {
+            details = details.nextElementSibling;
+        }
+
+        if (details) {
+            if (details.style.display === 'none') {
+                details.style.display = 'block';
+                btn.textContent = '🔍 Hide Raw Data';
+            } else {
+                details.style.display = 'none';
+                btn.textContent = '🔍 Show Raw Data';
+            }
+        }
+    }
+</script>
+{% endblock %}

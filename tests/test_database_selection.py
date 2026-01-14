@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.ui.app import DatabaseEditor
+from src.web.app import DatabaseEditor
 
 
 def test_ask_database_mode_defaults_to_test():

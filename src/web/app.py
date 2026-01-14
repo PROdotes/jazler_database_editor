@@ -39,7 +39,8 @@ _services = {
     'audit_service': None,
     'schema_settings': None,
     'export_service': None,
-    'lookup_service': None
+    'lookup_service': None,
+    'import_service': None
 }
 
 def load_connections():
@@ -88,6 +89,7 @@ def create_app():
     from src.web.routes.export import export_bp
     from src.web.routes.lookups import lookups_bp
     from src.web.routes.artists import bp as artists_bp
+    from src.web.routes.import_routes import import_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(songs_bp, url_prefix='/songs')
@@ -97,6 +99,7 @@ def create_app():
     app.register_blueprint(export_bp, url_prefix='/export')
     app.register_blueprint(lookups_bp, url_prefix='/lookups')
     app.register_blueprint(artists_bp)
+    app.register_blueprint(import_bp)
     
     @app.context_processor
     def inject_globals():
@@ -268,7 +271,8 @@ def reset_services():
         'audit_service': None,
         'schema_settings': None,
         'export_service': None,
-        'lookup_service': None
+        'lookup_service': None,
+        'import_service': None
     }
 
 def get_schema_settings(app):
@@ -300,6 +304,39 @@ def get_lookup_service(app):
             logger.info("Initializing LookupService")
             _services['lookup_service'] = LookupService(backend, registry)
     return _services['lookup_service']
+
+
+def get_import_service(app):
+    """Get or create the import service."""
+    global _services
+    if _services['import_service'] is None:
+        backend = get_backend(app)
+        artist_service = get_artist_service(app)
+        song_service = get_song_service(app)
+        if backend and artist_service and song_service:
+            from src.services.import_service import ImportService
+            logger.info("Initializing ImportService")
+            _services['import_service'] = ImportService(backend, artist_service, song_service)
+    return _services['import_service']
+
+
+def get_services(app):
+    """Get all services as a dictionary. Used by route modules."""
+    return {
+        'backend': get_backend(app),
+        'registry': get_registry(app),
+        'song_service': get_song_service(app),
+        'media_service': get_media_service(app),
+        'vfs_service': get_vfs_service(app),
+        'snapshot_service': get_snapshot_service(app),
+        'sync_service': get_sync_service(app),
+        'audit_service': get_audit_service(app),
+        'schema_settings': get_schema_settings(app),
+        'export_service': get_export_service(app),
+        'lookup_service': get_lookup_service(app),
+        'artist_service': get_artist_service(app),
+        'import_service': get_import_service(app),
+    }
 
 
 # Create app instance for running directly
