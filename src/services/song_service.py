@@ -176,6 +176,42 @@ class SongService:
         # Sort by label for nice UI
         return sorted(fields, key=lambda x: x[1])
 
+    def get_grid_columns(self, view_name: str = 'default') -> List[Any]:
+        """
+        Get list of column definitions for a named grid view.
+        Returns list of objects (col.name, col.label, col.type, etc.)
+        """
+        col_names = self.registry.get_grid_view(view_name)
+        columns = []
+        
+        if self._schema:
+            for name in col_names:
+                col = self._schema.get_column(name)
+                if col:
+                    columns.append(col)
+        return columns
+
+    def get_form_fields(self, layout_name: str = 'default') -> List[Any]:
+        """
+        Get list of field definitions for a named form layout.
+        Returns list of objects (col.name, col.label, col.type, etc.)
+        """
+        layout = self.registry.overrides.get('form_layouts', {}).get(layout_name, ['*'])
+        
+        fields = []
+        if not self._schema:
+            return []
+            
+        if layout == ['*']:
+            # Return all non-ignored fields
+            return [c for c in self._schema.columns if not c.is_ignored]
+            
+        for name in layout:
+            col = self._schema.get_column(name)
+            if col:
+                fields.append(col)
+        return fields
+
     def search(
         self, 
         field: str, 
@@ -183,34 +219,123 @@ class SongService:
         match_type: str = "contains",
         limit: int = 1000
     ) -> RecordSet:
+        """Legacy search wrapper."""
+        return self.search_advanced([{'field': field, 'value': value, 'match': match_type}], limit)
+
+    def search_advanced(self, criteria_list: List[Dict[str, str]], limit: int = 1000) -> RecordSet:
         """
-        Search for songs.
+        Multi-criteria search with AND logic.
         
         Args:
-            field: Column to search (can use display name)
-            value: Value to search for
-            match_type: "contains", "equals", "starts_with"
-            limit: Maximum results to return
-            
-        Returns:
-            RecordSet of matching songs
+            criteria_list: List of dicts with 'field', 'value', 'match'
+            limit: Max results
         """
-        # Resolve field name (handle display names)
-        actual_field = self._resolve_field_name(field)
+        if not criteria_list:
+            return self.get_all(limit)
+            
+        sql_parts = []
+        params = []
         
-        rows = self.backend.search(
-            self._table,
-            actual_field,
-            value,
-            match_type
-        )
+        for criteria in criteria_list:
+            field = criteria.get('field')
+            value = criteria.get('value', '').strip()
+            match = criteria.get('match', 'contains')
+            
+            # Resolve field name
+            actual_field = self._resolve_field_name(field)
+            
+            # Handle Lookups (Genre, etc)
+            snippet, p = self._build_lookup_filter(actual_field, value, match)
+            if snippet:
+                sql_parts.append(f"({snippet})")
+                params.extend(p)
+                continue
+                
+            # Handle Standard Fields
+            snippet, p = self._build_standard_filter(actual_field, value, match)
+            if snippet:
+                sql_parts.append(f"({snippet})")
+                params.extend(p)
+                
+        if not sql_parts:
+            return self.get_all(limit)
+            
+        where_clause = " AND ".join(sql_parts)
+        query = f"SELECT TOP {limit} * FROM [{self._table}] WHERE {where_clause}"
         
-        # Apply limit
-        if limit and len(rows) > limit:
-            rows = rows[:limit]
-        
+        rows = self.backend.fetch_sql(query, tuple(params))
         records = [self._row_to_record(row) for row in rows]
         return RecordSet(records)
+
+    def _build_lookup_filter(self, field: str, value: str, match: str) -> tuple[Optional[str], List[Any]]:
+        """Build SQL snippet for lookup fields."""
+        lookup_map = None
+        if field in ['fldCat1a', 'fldCat1b', 'fldCat1c']:
+            self.genre_map # ensure loaded
+            lookup_map = self._genre_map
+        elif field == 'fldCat2':
+            self.decade_map # ensure loaded
+            lookup_map = self._decade_map
+        elif field == 'fldCat3':
+            self.tempo_map # ensure loaded
+            lookup_map = self._tempo_map
+            
+        if not lookup_map or (not value and match != 'is_empty'):
+            return None, []
+            
+        if match == 'is_empty':
+             # For numeric IDs, empty is usually 0
+            return f"[{field}] = 0 OR [{field}] IS NULL", []
+
+        # Find matching IDs
+        matching_ids = []
+        search_val_lower = value.lower()
+        
+        for id_val, name in lookup_map.items():
+            if not name: continue
+            name_lower = name.lower()
+            is_match = False
+            
+            if match == 'equals': is_match = (name_lower == search_val_lower)
+            elif match == 'starts_with': is_match = name_lower.startswith(search_val_lower)
+            elif match == 'contains': is_match = (search_val_lower in name_lower)
+                
+            if is_match: matching_ids.append(id_val)
+        
+        if not matching_ids:
+            return "1=0", [] # Force no match
+            
+        ids_str = ",".join(str(i) for i in matching_ids)
+        
+        # Special logic for Genre: search all 3 columns if looking for "Rock"
+        if field == 'fldCat1a':
+             return f"fldCat1a IN ({ids_str}) OR fldCat1b IN ({ids_str}) OR fldCat1c IN ({ids_str})", []
+             
+        return f"[{field}] IN ({ids_str})", []
+
+    def _build_standard_filter(self, field: str, value: str, match: str) -> tuple[str, List[Any]]:
+        """Build standard Text/Numeric SQL filter."""
+        # Determine column type if possible
+        is_numeric = False
+        if self._schema:
+            col = self._schema.get_column(field)
+            if col and col.type_name in ('INTEGER', 'LONG', 'SHORT', 'BYTE', 'CURRENCY', 'SINGLE', 'DOUBLE', 'NUMERIC'):
+                is_numeric = True
+
+        if match == 'is_empty':
+            if is_numeric:
+                return f"[{field}] IS NULL OR [{field}] = 0", []
+            else:
+                return f"[{field}] IS NULL OR [{field}] = ''", []
+            
+        if match == 'equals':
+            return f"[{field}] = ?", [value]
+        elif match == 'starts_with':
+            return f"[{field}] LIKE ?", [f"{value}%"]
+        elif match == 'ends_with':
+             return f"[{field}] LIKE ?", [f"%{value}"]
+        else: # contains
+            return f"[{field}] LIKE ?", [f"%{value}%"]
     
     # FIELD_ALIASES removed - now handled by table schema
     

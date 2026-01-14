@@ -391,6 +391,26 @@ class AccessBackend(Backend):
     # Utility
     # ─────────────────────────────────────────────────────────────
     
+    def fetch_sql(self, query: str, params: Optional[tuple] = None) -> List[Dict[str, Any]]:
+        """Execute raw SQL and return list of dicts."""
+        cursor = self._get_cursor()
+        try:
+            if params:
+                cursor.execute(query, params)
+            else:
+                cursor.execute(query)
+            
+            if not cursor.description:
+                # No results (e.g. UPDATE/INSERT)
+                self._connection.commit()
+                return []
+                
+            col_names = [desc[0] for desc in cursor.description]
+            rows = cursor.fetchall()
+            return [dict(zip(col_names, row)) for row in rows]
+        finally:
+            cursor.close()
+
     def execute_raw(self, query: str, params: Optional[tuple] = None) -> List[Any]:
         """Execute a raw SQL query."""
         cursor = self._get_cursor()

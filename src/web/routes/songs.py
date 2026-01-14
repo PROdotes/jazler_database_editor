@@ -26,21 +26,43 @@ def search():
         return redirect(url_for('main.index'))
     
     # Get search parameters from query string or session
-    field = request.args.get('field', session.get('last_field', 'artist'))
-    value = request.args.get('value', session.get('last_value', ''))
-    match = request.args.get('match', session.get('last_match', 'contains'))
+    # Get search parameters (support multiple via getlist)
+    fields = request.args.getlist('field')
+    values = request.args.getlist('value')
+    matches = request.args.getlist('match')
     
+    # Backward compatibility / Default
+    if not fields:
+        fields = [session.get('last_field', 'artist')]
+        values = [session.get('last_value', '')]
+        matches = [session.get('last_match', 'contains')]
+        
+    # Prepare scalar variables for template
+    field = fields[0] if fields else 'artist'
+    value = values[0] if values else ''
+    match = matches[0] if matches else 'contains'
+        
+    criteria_list = []
+    # Zip together (safely)
+    for i in range(len(fields)):
+        f = fields[i]
+        v = values[i] if i < len(values) else ''
+        m = matches[i] if i < len(matches) else 'contains'
+        if v or m == 'is_empty':
+            criteria_list.append({'field': f, 'value': v, 'match': m})
+            
     results = None
     position = 0
     
-    if value or match == 'is_empty':
-        # Save search to session
-        session['last_field'] = field
-        session['last_value'] = value
-        session['last_match'] = match
+    if criteria_list:
+        # Save primary search to session (simple version)
+        if criteria_list:
+            session['last_field'] = criteria_list[0]['field']
+            session['last_value'] = criteria_list[0]['value']
+            session['last_match'] = criteria_list[0]['match']
         
         # Execute search
-        results = service.search(field, value, match, limit=500)
+        results = service.search_advanced(criteria_list, limit=500)
         
         # Store result IDs in session for batch navigation
         session['result_ids'] = [r.primary_key for r in results]
@@ -48,11 +70,10 @@ def search():
         # Handle position navigation
         pos_str = request.args.get('pos')
         if pos_str:
-            position = int(pos_str)
-            results.position = position
-    
-            position = int(pos_str)
-            results.position = position
+            try:
+                position = int(pos_str)
+                results.position = position
+            except: pass
     
     # Dynamic field list from schema
     search_fields = service.get_searchable_fields()
@@ -61,17 +82,12 @@ def search():
     from src.web.app import get_registry
     registry = get_registry(current_app)
     
-    # Default view for now (could be session-based later)
+    # Get Grid Columns
     view_name = session.get('grid_view', 'default')
-    col_names = registry.get_grid_view(view_name)
+    grid_columns = service.get_grid_columns(view_name)
     
-    # Resolve to definitions
-    table_def = registry.get_table('snDatabase')
-    grid_columns = []
-    if table_def:
-        for name in col_names:
-            col = table_def.get_column(name)
-            if col: grid_columns.append(col)
+    # Need PK field for rendering
+    table_def = service._schema
             
     return render_template('songs/search.html',
                          search_fields=search_fields,
@@ -83,7 +99,8 @@ def search():
                          grid_columns=grid_columns,
                          pk_field=table_def.primary_key,
                          active_view=view_name,
-                         available_views=registry.get_available_views())
+                         available_views=registry.get_available_views(),
+                         genre_map=service.genre_map)
 
 @songs_bp.route('/set-view/<view_name>')
 def set_view(view_name):

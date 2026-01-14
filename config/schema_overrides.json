@@ -186,6 +186,14 @@
             "fldFilename",
             "fldDuration",
             "fldEnabled"
+        ],
+        "classification": [
+            "AUID",
+            "fldArtistName",
+            "fldTitle",
+            "fldCat1a",
+            "fldCat1b",
+            "fldCat1c"
         ]
     },
     "form_layouts": {

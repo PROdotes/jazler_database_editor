@@ -37,9 +37,64 @@ def create():
 def index():
     """Artist Manager Dashboard."""
     service = get_artist_service(current_app)
-    # Default limit 1000 for performance, maybe paginate later
+    # Default limit 2000 for performance
     valid_limit = 2000 
     
-    artists = service.get_all_with_counts(limit=valid_limit)
+    query = request.args.get('q')
+    artists = service.get_all_with_counts(limit=valid_limit, query_filter=query)
     
     return render_template('artists/index.html', artists=artists)
+
+@bp.route('/update/<int:id>', methods=['POST'])
+def update(id):
+    """
+    Update artist details (e.g., rename).
+    Handles rename propagation via Service.
+    """
+    data = request.json or request.form
+    new_name = data.get('name')
+    
+    if not new_name:
+        return jsonify({'error': 'Name is required'}), 400
+        
+    service = get_artist_service(current_app)
+    
+    # Check for name collision
+    existing = service.get_by_name(new_name)
+    if existing and existing['AUID'] != id:
+        return jsonify({
+            'error': f"Artist '{new_name}' already exists (ID: {existing['AUID']}). Please use Merge instead."
+        }), 409
+        
+    try:
+        success = service.update(id, {'fldName': new_name})
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Update failed in backend'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/merge', methods=['POST'])
+def merge():
+    """
+    Merge two artists.
+    Source ID -> Target ID.
+    Source is deleted.
+    """
+    data = request.json or request.form
+    source_id = data.get('source_id')
+    target_id = data.get('target_id')
+    
+    if not source_id or not target_id:
+        return jsonify({'error': 'Source and Target IDs are required'}), 400
+        
+    service = get_artist_service(current_app)
+    try:
+        success = service.merge(int(source_id), int(target_id))
+        if success:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Merge failed in backend'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

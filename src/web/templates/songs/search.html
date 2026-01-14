@@ -46,28 +46,98 @@
 
 <!-- Search Form -->
 <div class="search-panel">
-    <form action="{{ url_for('songs.search') }}" method="get" class="search-form">
-        <div class="search-row">
-            <select name="field" class="form-control">
-                {% for val, label in search_fields %}
-                <option value="{{ val }}" {{ 'selected' if val==field else '' }}>{{ label }}</option>
-                {% endfor %}
-            </select>
+    <form action="{{ url_for('songs.search') }}" method="get" class="search-form" id="searchForm">
+        <div id="criteria-container">
+            {# Initial Row for JS cloning (hidden template) #}
+            <div class="search-row template" style="display: none;">
+                <select name="field" class="form-control" disabled>
+                    {% for val, label in search_fields %}
+                    <option value="{{ val }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="match" class="form-control" disabled>
+                    <option value="contains">contains</option>
+                    <option value="equals">equals</option>
+                    <option value="starts_with">starts with</option>
+                    <option value="is_empty">is empty</option>
+                </select>
+                <input type="text" name="value" placeholder="Search..." class="form-control search-input" disabled>
+                <button type="button" class="btn btn-danger btn-sm remove-row" onclick="removeRow(this)">×</button>
+            </div>
 
-            <select name="match" class="form-control">
-                <option value="contains" {{ 'selected' if match=='contains' else '' }}>contains</option>
-                <option value="equals" {{ 'selected' if match=='equals' else '' }}>equals</option>
-                <option value="starts_with" {{ 'selected' if match=='starts_with' else '' }}>starts with</option>
-                <option value="is_empty" {{ 'selected' if match=='is_empty' else '' }}>is empty</option>
-            </select>
+            {# Active Rows (loop or default) #}
+            {% set criteria_count = 0 %}
+            {# We need to inspect request.args logic or pass criteria_list from backend #}
+            {# But for now, let's use the field/value/match vars if passed, assuming they might be lists or single #}
 
-            <input type="text" name="value" value="{{ value }}" placeholder="Search..."
-                class="form-control search-input" autofocus>
+            {# If 'field' is a string, it's single mode. If list, multi mode.
+            However, Jinja context usually has processed vars.
+            Let's assume the route passes scalar 'field', 'value', 'match' for single mode,
+            OR we check request.args directly. #}
 
-            <button type="submit" class="btn btn-primary">🔍 Search</button>
+            {% set fields = request.args.getlist('field') %}
+            {% set values = request.args.getlist('value') %}
+            {% set matches = request.args.getlist('match') %}
+
+            {% if not fields %}
+            {# Default / First Load #}
+            {% set fields = [field] if field else ['artist'] %}
+            {% set values = [value] if value else [''] %}
+            {% set matches = [match] if match else ['contains'] %}
+            {% endif %}
+
+            {% for i in range(fields|length) %}
+            <div class="search-row">
+                <select name="field" class="form-control">
+                    {% for val, label in search_fields %}
+                    <option value="{{ val }}" {{ 'selected' if val==fields[i] else '' }}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <select name="match" class="form-control">
+                    <option value="contains" {{ 'selected' if matches[i]=='contains' else '' }}>contains</option>
+                    <option value="equals" {{ 'selected' if matches[i]=='equals' else '' }}>equals</option>
+                    <option value="starts_with" {{ 'selected' if matches[i]=='starts_with' else '' }}>starts with
+                    </option>
+                    <option value="is_empty" {{ 'selected' if matches[i]=='is_empty' else '' }}>is empty</option>
+                </select>
+                <input type="text" name="value" value="{{ values[i] }}" placeholder="Search..."
+                    class="form-control search-input">
+
+                {% if loop.index0 == 0 %}
+                <button type="submit" class="btn btn-primary">🔍 Search</button>
+                {% else %}
+                <button type="button" class="btn btn-danger btn-sm remove-row" onclick="removeRow(this)">×</button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="search-actions" style="margin-top: 10px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addCriteria()">+ Add Filter</button>
         </div>
     </form>
 </div>
+
+<script>
+    function addCriteria() {
+        const template = document.querySelector('.search-row.template');
+        const container = document.getElementById('criteria-container');
+        const newRow = template.cloneNode(true);
+
+        newRow.classList.remove('template');
+        newRow.style.display = 'flex';
+
+        // Enable inputs
+        const inputs = newRow.querySelectorAll('input, select');
+        inputs.forEach(input => input.disabled = false);
+
+        container.appendChild(newRow);
+    }
+
+    function removeRow(btn) {
+        btn.closest('.search-row').remove();
+    }
+</script>
 
 <!-- Results -->
 {% if results is not none %}
@@ -96,6 +166,10 @@
                 <td>
                     {% if col.name == pk_field %}
                     <span class="mono">{{ record[col.name] }}</span>
+                    {% elif col.name.startswith('fldCat1') %}
+                    {# Resolve Genre ID to Name #}
+                    {% set val = record[col.name] %}
+                    {{ genre_map.get(val, val) if val else '' }}
                     {% else %}
                     {{ record[col.name] or '' }}
                     {% endif %}

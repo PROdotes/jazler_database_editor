@@ -280,21 +280,21 @@ class SchemaDiscovery:
 **These features from the old Tkinter app MUST be replicated in the web UI:**
 
 ### Core Features
-- [ ] **Database Selector**: Choose Live vs Test database on startup
-- [ ] **Search/Query**: Search by field (artist, title, album, etc.) with contains/equals
-- [ ] **Result Navigation**: Previous/Next through search results with position indicator
-- [ ] **Field Display**: Show Database values vs ID3 tag values side-by-side
-- [ ] **Validation Indicators**: Color-coded status (green=match, red=mismatch, yellow=warning)
-- [ ] **Edit Fields**: Modify ID3 fields in the right column
+- [x] **Database Selector**: Choose Live vs Test database on startup
+- [x] **Search/Query**: Search by field (artist, title, album, etc.) with contains/equals
+- [x] **Result Navigation**: Previous/Next through search results with position indicator
+- [x] **Field Display**: Show Database values vs ID3 tag values side-by-side
+- [x] **Validation Indicators**: Color-coded status (green=match, red=mismatch, yellow=warning)
+- [x] **Edit Fields**: Modify ID3 fields in the right column
 - [ ] **Copy Buttons**: Copy DB→ID3 or ID3→DB per field
-- [ ] **Save**: Update database + write ID3 tags to file
-- [ ] **Save & Rename**: Save + rename file to match expected path
+- [x] **Save**: Update database + write ID3 tags to file
+- [x] **Save & Rename**: Save + rename file to match expected path
 
 ### Supporting Features
-- [ ] **Genre/Decade/Tempo Maps**: Load lookup tables for display
-- [ ] **Path Validation**: Check if file exists, highlight if missing
+- [x] **Genre/Decade/Tempo Maps**: Load lookup tables for display
+- [x] **Path Validation**: Check if file exists, highlight if missing
 - [ ] **Error Badge**: Show error count with click-to-view log
-- [ ] **Web Search**: Google/Discogs lookup for current song
+- [x] **Web Search**: Google/Discogs lookup for current song
 
 ### Keyboard Shortcuts (to implement as web hotkeys)
 | Key | Action |
@@ -314,12 +314,12 @@ class SchemaDiscovery:
 ### 🏁 Phase 0: Foundation (Session 1, ~3-4 hours)
 **Goal:** New folder structure + Backend abstraction working
 
-- [ ] Create new folder structure (keep old code in `legacy/`)
-- [ ] Implement `Backend` abstract class
-- [ ] Implement `AccessBackend` (port from `database.py`)
-- [ ] Implement `SchemaDiscovery` (port from `probe_schema.py`)
-- [ ] Create `config/connections.json`
-- [ ] Verify: Can connect and list tables/columns
+- [x] Create new folder structure (keep old code in `legacy/`)
+- [x] Implement `Backend` abstract class
+- [x] Implement `AccessBackend` (port from `database.py`)
+- [x] Implement `SchemaDiscovery` (port from `probe_schema.py`)
+- [x] Create `config/connections.json`
+- [x] Verify: Can connect and list tables/columns
 
 **Deliverable:** `python -m src.cli probe --test` shows schema
 
@@ -328,12 +328,12 @@ class SchemaDiscovery:
 ### 🔍 Phase 1: Core + Query (Session 2, ~3-4 hours)
 **Goal:** Can search and retrieve records
 
-- [ ] Implement `SchemaRegistry` with override loading
-- [ ] Implement `Record` model (generic dict wrapper)
-- [ ] Implement `Query` builder with filters
-- [ ] Implement `SongService.search()` and `SongService.get_by_id()`
-- [ ] Port genre/decade/tempo map loading
-- [ ] CLI: `query` command
+- [x] Implement `SchemaRegistry` with override loading
+- [x] Implement `Record` model (generic dict wrapper)
+- [x] Implement `Query` builder with filters
+- [x] Implement `SongService.search()` and `SongService.get_by_id()`
+- [x] Port genre/decade/tempo map loading
+- [x] CLI: `query` command
 
 **Deliverable:** `python -m src.cli query --field artist --value "Beatles"` returns records
 
@@ -347,15 +347,15 @@ class SchemaDiscovery:
 - [x] Home page with database selector
 - [x] `/songs` route: Search form + results table
 - [x] `/songs/<id>` route: Single song view with resolved lookups
-- [ ] Navigation: Previous/Next buttons *(deferred)*
+- [x] Navigation: Previous/Next buttons *(deferred)*
 - [ ] Pagination for large result sets *(deferred)*
 
 **Deliverable:** Can search songs and browse through results in browser ✅
 
 **Future Enhancement (Phase 2.5): Multi-Filter Search**
-- [ ] Multiple filter conditions (AND logic)
-- [ ] "Is empty" / "Is not empty" operators for finding missing data
-- [ ] Genre filter by name (resolve to IDs internally)
+- [x] Multiple filter conditions (AND logic)
+- [x] "Is empty" / "Is not empty" operators for finding missing data
+- [x] Genre filter by name (resolve to IDs internally)
 - [ ] Save/load search presets
 - Example: `Genre contains "za obradu" AND Year is empty`
 
@@ -409,7 +409,7 @@ We cannot just type a string for `fldArtistName`. We must select an `AUID` from 
 **Status:** Completed ✅
 *   Resolves the dependency for Phase 9.5 (Import from Orphan).
 
-### ✏️ Phase 3.6: Artist CRUD & Propagation (Partial)
+### ✏️ Phase 3.6: Artist CRUD & Propagation ✅
 **Goal:** Full management of Artists (Rename, Delete, Merge).
 
 **Challenge:**
@@ -417,11 +417,12 @@ We cannot just type a string for `fldArtistName`. We must select an `AUID` from 
 
 **Implementation Plan:**
 *   [x] **Bulk Reassign**: Bulk Edit now supports changing Artist for multiple songs (propagates ID and Name). ✅
-*   [ ] **Rename Artist**: Edit single artist record -> propagates to all songs.
-*   [ ] **Merge Tool**: Dedicated UI to merge A into B (easier than bulk reassign for 1000 songs).
+*   [x] **Rename Artist**: Edit single artist record -> propagates to all songs. ✅
+*   [x] **Merge Tool**: Dedicated UI to merge A into B (easier than bulk reassign for 1000 songs). ✅
 
-**Status:** Partial ✅
+**Status:** Completed ✅
 *   Bulk Edit Artist implemented and verified.
+*   Rename and Merge implemented in Artist Manager.
 
 
 **Deliverable:** Can change song artist via web UI without breaking links
@@ -581,11 +582,11 @@ Define named views in `schema_overrides.json`:
 *   **Column Toggles:** UI to show/hide columns ad-hoc (updates session state).
 
 **Tasks:**
-- [ ] Implement `grid_views` and `form_layouts` in `schema_overrides.json`
-- [ ] Implement `get_grid_columns` and `get_form_fields` in SongService
-- [ ] Refactor `list.html` to use dynamic loops
+- [x] Implement `grid_views` and `form_layouts` in `schema_overrides.json`
+- [x] Implement `get_grid_columns` and `get_form_fields` in SongService
+- [x] Refactor `list.html` to use dynamic loops
 - [ ] Refactor `edit.html` to use dynamic field rendering
-- [ ] Create View Switcher UI
+- [x] Create View Switcher UI
 - [ ] **Config UI:** Allow users to create/edit Views (Advanced)
 
 ---
@@ -686,9 +687,9 @@ Jazler relies on auxiliary tables to store reference data. To manage these effec
 **2. Artist Extensions (In Progress)**
 *   **Structure:** Defined "Dictionaries" as a core menu concept.
 *   **Next Steps:**
-    *   [ ] Implement `ArtistService.get_usage_counts()` for Orphan detection.
-    *   [ ] Create Artist Manager UI with "Songs Count" column.
-    *   [ ] Implement "Merge Artist" workflow.
+    *   [x] Implement `ArtistService.get_usage_counts()` for Orphan detection.
+    *   [x] Create Artist Manager UI with "Songs Count" column.
+    *   [x] Implement "Merge Artist" workflow.
 
 
 **2. Registry API Contract (`SchemaRegistry`):**
@@ -859,6 +860,7 @@ Jazler relies on auxiliary tables to store reference data. To manage these effec
 | 2026-01-11 | Phase 8.5 | ✅ | Lookup Registry, Generic Grid, Generic Edit Form |
 | 2026-01-11 | Phase 3.5 | ✅ | Artist Manager (Entity Picker, Search, Create) |
 | 2026-01-11 | Phase 3.6 | 🚧 | Partial: Bulk Artist Assign implemented |
+| 2026-01-13 | Phase 3.6 | ✅ | Artist Manager: Rename & Merge propagation implemented |
 | 2026-01-11 | Phase 9 | 📝 | Planning: Bi-directional sync requirements logged |
 
 ---
